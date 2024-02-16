@@ -1,0 +1,19 @@
+[package]
+name = "lightstreamer-client"
+version = "0.1.0"
+edition = "2021"
+authors = ["Daniel López Azaña <daniloaz@gmail.com>"]
+description = "A Rust client for Lightstreamer, designed to facilitate real-time communication with Lightstreamer servers."
+license = "GPL 3.0"
+repository = "https://github.com/daniloaz/lightstreamer-client"
+documentation = "https://github.com/daniloaz/lightstreamer-client#readme"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+futures = "0"
+hyper = { version = "1", features = ["full"] }
+reqwest = { version = "0", features = ["json", "stream"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1" }
+tokio = { version = "1", features = ["full"] }
