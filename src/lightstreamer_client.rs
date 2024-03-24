@@ -45,8 +45,8 @@ use cookie::Cookie;
 /// * `IllegalArgumentException`: if a not valid address is passed. See `ConnectionDetails.setServerAddress()`
 ///   for details.
 pub struct LightstreamerClient {
-    server_address: Option<String>,
-    adapter_set: Option<String>,
+    server_address: String,
+    adapter_set: String,
     /// Data object that contains the details needed to open a connection to a Lightstreamer Server.
     /// This instance is set up by the `LightstreamerClient` object at its own creation. Properties
     /// of this object can be overwritten by values received from a Lightstreamer Server.
@@ -134,10 +134,6 @@ impl LightstreamerClient {
     ///
     /// See also `ConnectionDetails.setServerAddress()`
     pub fn connect(&mut self) -> Result<(), IllegalStateException> {
-        if self.server_address.is_none() {
-            return Err(IllegalStateException::new("No server address was configured."));
-        }
-
         // Implementation for connect
         Ok(())
     }
@@ -234,6 +230,23 @@ impl LightstreamerClient {
     /// See also `subscribe()`
     pub fn get_subscriptions(&self) -> &Vec<Subscription> {
         &self.subscriptions
+    }
+
+    pub fn new (server_address: &str, adapter_set: &str) -> Result<LightstreamerClient, IllegalStateException> {
+        let connection_details = ConnectionDetails::new(
+            server_address.to_string(), 
+            adapter_set.to_string(),
+        );
+        let connection_options = ConnectionOptions::new();
+
+        Ok(LightstreamerClient {
+            server_address: server_address.map(|s| s.to_string()),
+            adapter_set: adapter_set.map(|s| s.to_string()),
+            connection_details,
+            connection_options,
+            listeners: Vec::new(),
+            subscriptions: Vec::new(),
+        })
     }
 
     /// Removes a listener from the `LightstreamerClient` instance so that it will not receive

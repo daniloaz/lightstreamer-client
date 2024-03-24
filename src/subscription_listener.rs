@@ -32,7 +32,9 @@ pub trait SubscriptionListener {
     /// - `item_name`: name of the involved item. If the Subscription was initialized using an
     ///   "Item Group" then a `None` value is supplied.
     /// - `item_pos`: 1-based position of the item within the "Item List" or "Item Group".
-    fn on_clear_snapshot(&mut self, item_name: Option<&str>, item_pos: usize);
+    fn on_clear_snapshot(&mut self, item_name: Option<&str>, item_pos: usize) {
+        // Default implementation does nothing.
+    }
 
     /// Event handler that is called by Lightstreamer to notify that, due to internal resource
     /// limitations, Lightstreamer Server dropped one or more updates for an item that was
@@ -52,7 +54,9 @@ pub trait SubscriptionListener {
     /// - `Subscription::set_requested_max_frequency()`
     /// - `Subscription::set_command_second_level_fields()`
     /// - `Subscription::set_command_second_level_field_schema()`
-    fn on_command_second_level_item_lost_updates(&mut self, lost_updates: u32, key: &str);
+    fn on_command_second_level_item_lost_updates(&mut self, lost_updates: u32, key: &str) {
+        // Default implementation does nothing.
+    }
 
     /// Event handler that is called when the Server notifies an error on a second-level subscription.
     ///
@@ -83,7 +87,9 @@ pub trait SubscriptionListener {
     /// - `ConnectionDetails::set_adapter_set()`
     /// - `Subscription::set_command_second_level_fields()`
     /// - `Subscription::set_command_second_level_field_schema()`
-    fn on_command_second_level_subscription_error(&mut self, code: i32, message: Option<&str>, key: &str);
+    fn on_command_second_level_subscription_error(&mut self, code: i32, message: Option<&str>, key: &str) {
+        // Default implementation does nothing.
+    }
 
     /// Event handler that is called by Lightstreamer to notify that all snapshot events for an item
     /// in the Subscription have been received, so that real time events are now going to be received.
@@ -108,7 +114,9 @@ pub trait SubscriptionListener {
     ///
     /// - `Subscription::set_requested_snapshot()`
     /// - `ItemUpdate::is_snapshot()`
-    fn on_end_of_snapshot(&mut self, item_name: Option<&str>, item_pos: usize);
+    fn on_end_of_snapshot(&mut self, item_name: Option<&str>, item_pos: usize) {
+        // Default implementation does nothing.
+    }
 
     /// Event handler that is called by Lightstreamer to notify that, due to internal resource
     /// limitations, Lightstreamer Server dropped one or more updates for an item in the Subscription.
@@ -131,7 +139,9 @@ pub trait SubscriptionListener {
     /// # See also
     ///
     /// - `Subscription::set_requested_max_frequency()`
-    fn on_item_lost_updates(&mut self, item_name: Option<&str>, item_pos: usize, lost_updates: u32);
+    fn on_item_lost_updates(&mut self, item_name: Option<&str>, item_pos: usize, lost_updates: u32) {
+        // Default implementation does nothing.
+    }
 
     /// Event handler that is called by Lightstreamer each time an update pertaining to an item
     /// in the Subscription has been received from the Server.
@@ -141,17 +151,23 @@ pub trait SubscriptionListener {
     /// - `update`: a value object containing the updated values for all the fields, together with
     ///   meta-information about the update itself and some helper methods that can be used to
     ///   iterate through all or new values.
-    fn on_item_update(&mut self, update: ItemUpdate);
+    fn on_item_update(&mut self, update: ItemUpdate) {
+        // Default implementation does nothing.
+    }
 
     /// Event handler that receives a notification when the `SubscriptionListener` instance is
     /// removed from a `Subscription` through `Subscription::remove_listener()`. This is the last
     /// event to be fired on the listener.
-    fn on_listen_end(&mut self);
+    fn on_listen_end(&mut self) {
+        // Default implementation does nothing.
+    }
 
     /// Event handler that receives a notification when the `SubscriptionListener` instance is
     /// added to a `Subscription` through `Subscription::add_listener()`. This is the first event
     /// to be fired on the listener.
-    fn on_listen_start(&mut self);
+    fn on_listen_start(&mut self) {
+        // Default implementation does nothing.
+    }
 
     /// Event handler that is called by Lightstreamer to notify the client with the real maximum
     /// update frequency of the Subscription. It is called immediately after the Subscription is
@@ -173,7 +189,9 @@ pub trait SubscriptionListener {
     /// - `frequency`: A decimal number, representing the maximum frequency applied by the Server
     ///   (expressed in updates per second), or the string "unlimited". A `None` value is possible in
     ///   rare cases, when the frequency can no longer be determined.
-    fn on_real_max_frequency(&mut self, frequency: Option<f64>);
+    fn on_real_max_frequency(&mut self, frequency: Option<f64>) {
+        // Default implementation does nothing.
+    }
 
     /// Event handler that is called by Lightstreamer to notify that a Subscription has been successfully
     /// subscribed to through the Server. This can happen multiple times in the life of a Subscription
@@ -190,7 +208,9 @@ pub trait SubscriptionListener {
     /// If the involved Subscription has a two-level behavior enabled
     /// (see `Subscription::set_command_second_level_fields()` and
     /// `Subscription::set_command_second_level_field_schema()`), second-level subscriptions are not notified.
-    fn on_subscription(&mut self);
+    fn on_subscription(&mut self) {
+        // Default implementation does nothing.
+    }
 
     /// Event handler that is called when the Server notifies an error on a Subscription.
     /// By implementing this method it is possible to perform recovery actions.
@@ -224,7 +244,9 @@ pub trait SubscriptionListener {
     /// # See also
     ///
     /// - `ConnectionDetails::set_adapter_set()`
-    fn on_subscription_error(&mut self, code: i32, message: Option<&str>);
+    fn on_subscription_error(&mut self, code: i32, message: Option<&str>) {
+        // Default implementation does nothing.
+    }
 
     /// Event handler that is called by Lightstreamer to notify that a Subscription has been successfully
     /// unsubscribed from. This can happen multiple times in the life of a Subscription instance, in case
@@ -240,5 +262,7 @@ pub trait SubscriptionListener {
     /// If the involved Subscription has a two-level behavior enabled
     /// (see `Subscription::set_command_second_level_fields()` and
     /// `Subscription::set_command_second_level_field_schema()`), second-level unsubscriptions are not notified.
-    fn on_unsubscription(&mut self);
+    fn on_unsubscription(&mut self) {
+        // Default implementation does nothing.
+    }
 }

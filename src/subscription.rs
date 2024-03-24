@@ -1,5 +1,6 @@
 use crate::subscription_listener::SubscriptionListener;
 use std::collections::HashMap;
+use std::fmt::{self, Debug, Formatter};
 
 /// Enum representing the subscription mode
 #[derive(Debug, PartialEq, Eq)]
@@ -837,4 +838,26 @@ impl Subscription {
         }
     }
     */
+}
+
+impl Debug for Subscription {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        f.debug_struct("Subscription")
+            .field("mode", &self.mode)
+            .field("item_group", &self.item_group)
+            .field("items", &self.items)
+            .field("field_schema", &self.field_schema)
+            .field("fields", &self.fields)
+            .field("data_adapter", &self.data_adapter)
+            .field("command_second_level_data_adapter", &self.command_second_level_data_adapter)
+            .field("command_second_level_field_schema", &self.command_second_level_field_schema)
+            .field("command_second_level_fields", &self.command_second_level_fields)
+            .field("requested_buffer_size", &self.requested_buffer_size)
+            .field("requested_max_frequency", &self.requested_max_frequency)
+            .field("requested_snapshot", &self.requested_snapshot)
+            .field("selector", &self.selector)
+            .field("is_active", &self.is_active)
+            .field("is_subscribed", &self.is_subscribed)
+            .finish()
+    }
 }

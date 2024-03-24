@@ -1,11 +1,20 @@
+use crate::item_update::ItemUpdate;
+use crate::subscription::{Subscription, SubscriptionMode};
+use crate::subscription_listener::SubscriptionListener;
+
 use futures::stream::StreamExt;
 use futures::SinkExt;
+use lightstreamer_client::lightstreamer_client::LightstreamerClient;
 use reqwest::Client;
 use serde_urlencoded;
 use std::error::Error;
 use std::sync::Arc;
-use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use tokio::sync::Mutex;
+use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
+
+mod item_update;
+mod subscription;
+mod subscription_listener;
 
 async fn establish_persistent_http_connection(
     session_id_shared: Arc<Mutex<String>>,
@@ -116,7 +125,12 @@ async fn subscribe_to_channel(session_id: String) -> Result<(), reqwest::Error> 
 // Function to subscribe to a channel using WebSocket
 async fn subscribe_to_channel_ws(
     session_id: String,
-    mut write: futures::stream::SplitSink<tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>, tokio_tungstenite::tungstenite::protocol::Message>,
+    mut write: futures::stream::SplitSink<
+        tokio_tungstenite::WebSocketStream<
+            tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
+        >,
+        tokio_tungstenite::tungstenite::protocol::Message,
+    >,
 ) -> Result<(), Box<dyn Error>> {
     // Example subscription to ITEM1 in MERGE mode from the DEMO adapter set
     let sub_params = [
@@ -131,15 +145,14 @@ async fn subscribe_to_channel_ws(
     let encoded_sub_params = serde_urlencoded::to_string(&sub_params)?;
 
     // Send the subscription message
-    write
-        .send(Message::Text(encoded_sub_params))
-        .await?;
+    write.send(Message::Text(encoded_sub_params)).await?;
 
     println!("Subscribed to channel with session ID: {}", session_id);
 
     Ok(())
 }
 
+/*
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
 
@@ -170,6 +183,36 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     task1.await?;
     task2.await?;
+
+    Ok(())
+}
+*/
+
+pub struct MySubscriptionListener {}
+
+impl SubscriptionListener for MySubscriptionListener {
+    fn on_item_update(&mut self, update: ItemUpdate) {
+        println!(
+            "UPDATE {} {}",
+            update.get_value("stock_name").unwrap(),
+            update.get_value("last_price").unwrap()
+        );
+    }
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
+    let mut subscription = Subscription::new(
+        SubscriptionMode::Merge,
+        Some(vec!["item1".to_string(),"item2".to_string(),"item3".to_string()]),
+        Some(vec!["stock_name".to_string(),"last_price".to_string()]),
+    )?;
+
+    subscription.add_listener(Box::new(MySubscriptionListener {}));
+
+    let client = LightstreamerClient::new("http://push.lightstreamer.com/lightstreamer", "DEMO")?;
+
+    println!("Subscription: {:?}", subscription);
 
     Ok(())
 }
