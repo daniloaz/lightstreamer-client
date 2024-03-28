@@ -1,20 +1,16 @@
-use crate::item_update::ItemUpdate;
-use crate::subscription::{Subscription, SubscriptionMode};
-use crate::subscription_listener::SubscriptionListener;
+use lightstreamer_client::item_update::ItemUpdate;
+use lightstreamer_client::ls_client::LightstreamerClient;
+use lightstreamer_client::subscription::{Snapshot, Subscription, SubscriptionMode};
+use lightstreamer_client::subscription_listener::SubscriptionListener;
 
 use futures::stream::StreamExt;
 use futures::SinkExt;
-use lightstreamer_client::lightstreamer_client::LightstreamerClient;
 use reqwest::Client;
 use serde_urlencoded;
 use std::error::Error;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
-
-mod item_update;
-mod subscription;
-mod subscription_listener;
 
 async fn establish_persistent_http_connection(
     session_id_shared: Arc<Mutex<String>>,
@@ -225,6 +221,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     )?;
 
     subscription.add_listener(Box::new(MySubscriptionListener {}));
+    subscription.set_data_adapter(Some(String::from("QUOTE_ADAPTER")))?;
+    subscription.set_requested_snapshot(Some(Snapshot::Yes))?;
 
     let client = LightstreamerClient::new(
         Some("http://push.lightstreamer.com/lightstreamer"),

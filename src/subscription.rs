@@ -2,7 +2,16 @@ use crate::subscription_listener::SubscriptionListener;
 use std::collections::HashMap;
 use std::fmt::{self, Debug, Formatter};
 
-/// Enum representing the subscription mode
+/// Enum representing the snapshot delivery preferences to be requested to Lightstreamer Server for the items in the Subscription.
+#[derive(Debug)]
+pub enum Snapshot {
+    Yes,
+    No,
+    Number(usize),
+    None,
+}
+
+/// Enum representing the subscription mode.
 #[derive(Debug, PartialEq, Eq)]
 pub enum SubscriptionMode {
     Merge,
@@ -49,7 +58,7 @@ pub struct Subscription {
     /// The maximum update frequency to be requested to Lightstreamer Server for all the items in the Subscription.
     requested_max_frequency: Option<f64>,
     /// The snapshot delivery preferences to be requested to Lightstreamer Server for the items in the Subscription.
-    requested_snapshot: Option<String>,
+    requested_snapshot: Option<Snapshot>,
     /// The selector name for all the items in the Subscription, used as a filter on the updates received.
     selector: Option<String>,
     /// A list of SubscriptionListener instances that will receive events from this Subscription.
@@ -618,15 +627,22 @@ impl Subscription {
     ///
     /// # See also
     /// `ItemUpdate.isSnapshot()`
-    pub fn set_requested_snapshot(&mut self, snapshot: Option<String>) -> Result<(), String> {
+    pub fn set_requested_snapshot(&mut self, snapshot: Option<Snapshot>) -> Result<(), String> {
         if self.is_active {
             return Err("Subscription is active".to_string());
         }
-        if self.mode == SubscriptionMode::Raw && snapshot.is_some() {
-            return Err("Cannot request snapshot for Raw mode".to_string());
-        }
-        if self.mode != SubscriptionMode::Distinct && snapshot.is_some() && snapshot.as_ref().unwrap().parse::<usize>().is_ok() {
-            return Err("Cannot specify snapshot length for non-Distinct mode".to_string());
+        match snapshot {
+            Some(Snapshot::None) => {
+                if self.mode == SubscriptionMode::Raw {
+                    return Err("Cannot request snapshot for Raw mode".to_string());
+                }
+            }
+            Some(Snapshot::Number(_)) => {
+                if self.mode != SubscriptionMode::Distinct {
+                    return Err("Cannot specify snapshot length for non-Distinct mode".to_string());
+                }
+            }
+            _ => {}
         }
         self.requested_snapshot = snapshot;
         Ok(())
@@ -639,7 +655,7 @@ impl Subscription {
     ///
     /// # Returns
     /// "yes", "no", `None`, or an integer number.
-    pub fn get_requested_snapshot(&self) -> Option<&String> {
+    pub fn get_requested_snapshot(&self) -> Option<&Snapshot> {
         self.requested_snapshot.as_ref()
     }
 

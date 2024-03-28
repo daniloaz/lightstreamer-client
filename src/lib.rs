@@ -7,7 +7,7 @@ pub mod item_update;
 pub mod subscription_listener;
 pub mod connection_details;
 pub mod connection_options;
-pub mod lightstreamer_client;
+pub mod ls_client;
 pub mod proxy;
 pub mod subscription;
 
