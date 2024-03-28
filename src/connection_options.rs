@@ -1,5 +1,7 @@
 use crate::proxy::Proxy;
 
+use std::fmt::{self, Debug, Formatter};
+
 /// Used by LightstreamerClient to provide an extra connection properties data object.
 /// Data struct that contains the policy settings used to connect to a Lightstreamer Server.
 /// An instance of this struct is attached to every LightstreamerClient as connection_options.
@@ -118,6 +120,31 @@ impl ConnectionOptions {
     /// Sets the stalled timeout.
     pub fn set_stalled_timeout(&mut self, stalled_timeout: u64) {
         self.stalled_timeout = Some(stalled_timeout);
+    }
+}
+
+impl Debug for ConnectionOptions {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ConnectionOptions")
+            .field("content_length", &self.content_length)
+            .field("first_retry_max_delay", &self.first_retry_max_delay)
+            .field("forced_transport", &self.forced_transport)
+            .field("http_extra_headers", &self.http_extra_headers)
+            .field("http_extra_headers_on_session_creation_only", &self.http_extra_headers_on_session_creation_only)
+            .field("idle_timeout", &self.idle_timeout)
+            .field("keepalive_interval", &self.keepalive_interval)
+            .field("polling_interval", &self.polling_interval)
+            .field("proxy", &self.proxy)
+            .field("real_max_bandwidth", &self.real_max_bandwidth)
+            .field("reconnect_timeout", &self.reconnect_timeout)
+            .field("requested_max_bandwidth", &self.requested_max_bandwidth)
+            .field("retry_delay", &self.retry_delay)
+            .field("reverse_heartbeat_interval", &self.reverse_heartbeat_interval)
+            .field("server_instance_address_ignored", &self.server_instance_address_ignored)
+            .field("session_recovery_timeout", &self.session_recovery_timeout)
+            .field("slowing_enabled", &self.slowing_enabled)
+            .field("stalled_timeout", &self.stalled_timeout)
+            .finish()
     }
 }
 

@@ -6,6 +6,7 @@ use crate::subscription::Subscription;
 use crate::IllegalStateException;
 
 use cookie::Cookie;
+use std::fmt::{self, Debug, Formatter};
 
 /// Facade class for the management of the communication to Lightstreamer Server. Used to provide
 /// configuration settings, event handlers, operations for the control of the connection lifecycle,
@@ -45,8 +46,8 @@ use cookie::Cookie;
 /// * `IllegalArgumentException`: if a not valid address is passed. See `ConnectionDetails.setServerAddress()`
 ///   for details.
 pub struct LightstreamerClient {
-    server_address: String,
-    adapter_set: String,
+    server_address: Option<String>,
+    adapter_set: Option<String>,
     /// Data object that contains the details needed to open a connection to a Lightstreamer Server.
     /// This instance is set up by the `LightstreamerClient` object at its own creation. Properties
     /// of this object can be overwritten by values received from a Lightstreamer Server.
@@ -57,6 +58,19 @@ pub struct LightstreamerClient {
     pub connection_options: ConnectionOptions,
     listeners: Vec<Box<dyn ClientListener>>,
     subscriptions: Vec<Subscription>,
+}
+
+impl Debug for LightstreamerClient {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("LightstreamerClient")
+            .field("server_address", &self.server_address)
+            .field("adapter_set", &self.adapter_set)
+            .field("connection_details", &self.connection_details)
+            .field("connection_options", &self.connection_options)
+            .field("listeners", &self.listeners)
+            .field("subscriptions", &self.subscriptions)
+            .finish()
+    }
 }
 
 impl LightstreamerClient {
@@ -232,13 +246,49 @@ impl LightstreamerClient {
         &self.subscriptions
     }
 
-    pub fn new (server_address: &str, adapter_set: &str) -> Result<LightstreamerClient, IllegalStateException> {
-        let connection_details = ConnectionDetails::new(
-            server_address.to_string(), 
-            adapter_set.to_string(),
-        );
+    /// Creates a new instance of `LightstreamerClient`.
+    ///
+    /// The constructor initializes the client with the server address and adapter set, if provided.
+    /// It sets up the connection details and options for the client. If no server address or
+    /// adapter set is specified, those properties on the client will be `None`. This allows
+    /// for late configuration of these details before connecting to the Lightstreamer server.
+    ///
+    /// # Arguments
+    /// * `server_address` - An optional reference to a string slice that represents the server
+    ///   address to connect to. If `None`, the server address must be set later.
+    /// * `adapter_set` - An optional reference to a string slice that specifies the adapter set name.
+    ///   If `None`, the adapter set must be set later.
+    ///
+    /// # Returns
+    /// A result containing the new `LightstreamerClient` instance if successful, or an
+    /// `IllegalStateException` if the initialization fails due to invalid state conditions.
+    ///
+    /// # Panics
+    /// Does not panic under normal circumstances. However, unexpected internal errors during
+    /// the creation of internal components could cause panics, which should be considered when
+    /// using this function in production code.
+    ///
+    /// # Example
+    /// ```
+    /// // Example usage of `new` to create a LightstreamerClient with specified server address and
+    /// // adapter set.
+    /// let server_address = Some("http://myserver.com");
+    /// let adapter_set = Some("MY_ADAPTER_SET");
+    /// let ls_client = LightstreamerClient::new(server_address, adapter_set);
+    ///
+    /// assert!(ls_client.is_ok());
+    /// if let Ok(client) = ls_client {
+    ///     assert_eq!(client.server_address.unwrap(), "http://myserver.com".to_string());
+    ///     assert_eq!(client.adapter_set.unwrap(), "MY_ADAPTER_SET".to_string());
+    /// }
+    /// ```
+    pub fn new(
+        server_address: Option<&str>,
+        adapter_set: Option<&str>,
+    ) -> Result<LightstreamerClient, IllegalStateException> {
+        let connection_details = ConnectionDetails::new(server_address, adapter_set);
         let connection_options = ConnectionOptions::new();
-
+    
         Ok(LightstreamerClient {
             server_address: server_address.map(|s| s.to_string()),
             adapter_set: adapter_set.map(|s| s.to_string()),

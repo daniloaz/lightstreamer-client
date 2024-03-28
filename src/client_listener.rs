@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 /// Interface to be implemented to listen to `LightstreamerClient` events comprehending notifications
 /// of connection activity and errors.
 ///
@@ -6,7 +8,7 @@
 /// has changed. On the other hand, all the notifications for a single `LightstreamerClient`,
 /// including notifications to `ClientListener`, `SubscriptionListener` and `ClientMessageListener`
 /// will be dispatched by the same thread.
-pub trait ClientListener {
+pub trait ClientListener: Debug {
     /// Event handler that receives a notification when the `ClientListener` instance is removed
     /// from a `LightstreamerClient` through `LightstreamerClient.removeListener()`. This is the
     /// last event to be fired on the listener.

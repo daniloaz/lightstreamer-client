@@ -108,8 +108,20 @@ async fn establish_persistent_ws_connection(
 
 async fn subscribe_to_channel(session_id: String) -> Result<(), reqwest::Error> {
     let client = Client::new();
-    let subscribe_url = "http://push.lightstreamer.com/lightstreamer/bind_session.txt";
-    let params = [("LS_session", &session_id)];
+    //let subscribe_url = "http://push.lightstreamer.com/lightstreamer/bind_session.txt";
+    //let params = [("LS_session", &session_id)];
+    let subscribe_url =
+        "http://push.lightstreamer.com/lightstreamer/control.txt?LS_protocol=TLCP-2.0.0";
+    let params = [
+        ("LS_session", &session_id),
+        ("LS_op", &"add".to_string()),
+        ("LS_subId", &"1".to_string()),
+        ("LS_data_adapter", &"CHAT_ROOM".to_string()),
+        ("LS_group", &"chat_room".to_string()),
+        ("LS_schema", &"timestamp message".to_string()),
+        ("LS_mode", &"DISTINCT".to_string()),
+        ("LS_reqId", &"1".to_string()),
+    ];
 
     let response = client.post(subscribe_url).form(&params).send().await?;
 
@@ -204,15 +216,23 @@ impl SubscriptionListener for MySubscriptionListener {
 async fn main() -> Result<(), Box<dyn Error>> {
     let mut subscription = Subscription::new(
         SubscriptionMode::Merge,
-        Some(vec!["item1".to_string(),"item2".to_string(),"item3".to_string()]),
-        Some(vec!["stock_name".to_string(),"last_price".to_string()]),
+        Some(vec![
+            "item1".to_string(),
+            "item2".to_string(),
+            "item3".to_string(),
+        ]),
+        Some(vec!["stock_name".to_string(), "last_price".to_string()]),
     )?;
 
     subscription.add_listener(Box::new(MySubscriptionListener {}));
 
-    let client = LightstreamerClient::new("http://push.lightstreamer.com/lightstreamer", "DEMO")?;
+    let client = LightstreamerClient::new(
+        Some("http://push.lightstreamer.com/lightstreamer"),
+        Some("DEMO"),
+    )?;
 
     println!("Subscription: {:?}", subscription);
+    println!("Client: {:?}", client);
 
     Ok(())
 }

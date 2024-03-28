@@ -1,5 +1,9 @@
+use hyper::server;
+
 use crate::client_listener::ClientListener;
 use crate::IllegalArgumentException;
+
+use std::fmt::{self, Debug, Formatter};
 
 /// Used by `LightstreamerClient` to provide a basic connection properties data object.
 ///
@@ -9,9 +13,9 @@ use crate::IllegalArgumentException;
 ///
 /// See also `LightstreamerClient`
 pub struct ConnectionDetails {
-    adapter_set: String,
+    adapter_set: Option<String>,
     client_ip: Option<String>,
-    server_address: String,
+    server_address: Option<String>,
     server_instance_address: Option<String>,
     server_socket_name: Option<String>,
     session_id: Option<String>,
@@ -31,7 +35,7 @@ impl ConnectionDetails {
     /// that the "DEFAULT" Adapter Set is used.
     ///
     /// See also `setAdapterSet()`
-    pub fn get_adapter_set(&self) -> &String {
+    pub fn get_adapter_set(&self) -> Option<&String> {
         self.adapter_set.as_ref()
     }
 
@@ -152,18 +156,11 @@ impl ConnectionDetails {
     }
 
     /// Creates a new ConnectionDetails object with default values.
-    pub fn new(server_address: Option<String>, adapter_set: Option<String>) -> ConnectionDetails {
-        if let Some(server_address) = server_address {
-            ConnectionDetails {
-                server_address: Some(server_address),
-                adapter_set,
-                ..Default::default()
-            }
-        } else {
-            ConnectionDetails {
-                adapter_set,
-                ..Default::default()
-            }
+    pub fn new(server_address: Option<&str>, adapter_set: Option<&str>) -> ConnectionDetails {
+        ConnectionDetails {
+            server_address: server_address.map(|s| s.to_string()), // convert &str to String
+            adapter_set: adapter_set.map(|s| s.to_string()), // convert &str to String
+            ..Default::default()
         }
     }
 
@@ -343,6 +340,21 @@ impl ConnectionDetails {
     pub fn remove_listener(&mut self, listener: Box<dyn ClientListener>) {
         unimplemented!("Implement mechanism to remove listener from ConnectionDetails.");
         //self.listeners.remove(&listener);
+    }
+}
+
+impl Debug for ConnectionDetails {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ConnectionDetails")
+            .field("adapter_set", &self.adapter_set)
+            .field("client_ip", &self.client_ip)
+            .field("server_address", &self.server_address)
+            .field("server_instance_address", &self.server_instance_address)
+            .field("server_socket_name", &self.server_socket_name)
+            .field("session_id", &self.session_id)
+            .field("user", &self.user)
+            .field("password", &self.password)
+            .finish()
     }
 }
 
