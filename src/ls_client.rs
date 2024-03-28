@@ -148,7 +148,10 @@ impl LightstreamerClient {
     ///
     /// See also `ConnectionDetails.setServerAddress()`
     pub fn connect(&mut self) -> Result<(), IllegalStateException> {
-        // Implementation for connect
+        if self.server_address.is_none() {
+            return Err(IllegalStateException::new("No server address was configured."));
+        }
+
         Ok(())
     }
 

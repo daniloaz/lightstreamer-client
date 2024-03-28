@@ -210,7 +210,7 @@ impl SubscriptionListener for MySubscriptionListener {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let mut subscription = Subscription::new(
+    let mut my_subscription = Subscription::new(
         SubscriptionMode::Merge,
         Some(vec![
             "item1".to_string(),
@@ -220,17 +220,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Some(vec!["stock_name".to_string(), "last_price".to_string()]),
     )?;
 
-    subscription.add_listener(Box::new(MySubscriptionListener {}));
-    subscription.set_data_adapter(Some(String::from("QUOTE_ADAPTER")))?;
-    subscription.set_requested_snapshot(Some(Snapshot::Yes))?;
+    my_subscription.set_data_adapter(Some(String::from("QUOTE_ADAPTER")))?;
+    my_subscription.set_requested_snapshot(Some(Snapshot::Yes))?;
+    my_subscription.add_listener(Box::new(MySubscriptionListener {}));
 
-    let client = LightstreamerClient::new(
+    let mut client = LightstreamerClient::new(
         Some("http://push.lightstreamer.com/lightstreamer"),
         Some("DEMO"),
     )?;
 
-    println!("Subscription: {:?}", subscription);
+    client.subscribe(my_subscription);
     println!("Client: {:?}", client);
+
+    client.connect();
 
     Ok(())
 }
