@@ -8,7 +8,7 @@ use crate::item_update::ItemUpdate;
 /// has changed. On the other hand, all the notifications for a single LightstreamerClient,
 /// including notifications to ClientListener, SubscriptionListener and ClientMessageListener
 /// will be dispatched by the same thread.
-pub trait SubscriptionListener {
+pub trait SubscriptionListener: Send {
     /// Event handler that is called by Lightstreamer each time a request to clear the snapshot
     /// pertaining to an item in the Subscription has been received from the Server.
     /// More precisely, this kind of request can occur in two cases:

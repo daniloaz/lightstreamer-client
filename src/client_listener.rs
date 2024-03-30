@@ -8,7 +8,7 @@ use std::fmt::Debug;
 /// has changed. On the other hand, all the notifications for a single `LightstreamerClient`,
 /// including notifications to `ClientListener`, `SubscriptionListener` and `ClientMessageListener`
 /// will be dispatched by the same thread.
-pub trait ClientListener: Debug {
+pub trait ClientListener: Debug + Send {
     /// Event handler that receives a notification when the `ClientListener` instance is removed
     /// from a `LightstreamerClient` through `LightstreamerClient.removeListener()`. This is the
     /// last event to be fired on the listener.

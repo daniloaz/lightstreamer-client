@@ -1,3 +1,4 @@
+use hyper::client;
 use lightstreamer_client::item_update::ItemUpdate;
 use lightstreamer_client::ls_client::LightstreamerClient;
 use lightstreamer_client::subscription::{Snapshot, Subscription, SubscriptionMode};
@@ -7,10 +8,47 @@ use futures::stream::StreamExt;
 use futures::SinkExt;
 use reqwest::Client;
 use serde_urlencoded;
+use signal_hook::low_level::signal_name;
+use signal_hook::{consts::SIGINT, consts::SIGTERM, iterator::Signals};
 use std::error::Error;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
+
+/// Sets up a signal hook for SIGINT and SIGTERM.
+///
+/// Creates a signal hook for the specified signals and spawns a thread to handle them.
+/// When a signal is received, it logs the signal name and performs cleanup before exiting with 0 code
+/// to indicate orderly shutdown.
+///
+/// # Arguments
+///
+/// * `full_path` - The full path to the application configuration file.
+///
+/// # Panics
+///
+/// The function panics if it fails to create the signal iterator.
+///
+async fn setup_signal_hook(client: Arc<Mutex<LightstreamerClient>>) {
+    // Create a signal set of signals to be handled and a signal iterator to monitor them.
+    let signals = &[SIGINT, SIGTERM];
+    let mut signals_iterator = Signals::new(signals).expect("Failed to create signal iterator");
+
+    // Create a new thread to handle signals sent to the process
+    tokio::spawn(async move {
+        for signal in signals_iterator.forever() {
+            println!("Received signal: {}", signal_name(signal).unwrap());
+            //
+            // Clean up and prepare to exit...
+            // ...
+            let mut client = client.lock().await;
+            client.disconnect();
+
+            // Exit with 0 code to indicate orderly shutdown.
+            std::process::exit(0);
+        }
+    });
+}
 
 async fn establish_persistent_http_connection(
     session_id_shared: Arc<Mutex<String>>,
@@ -210,6 +248,9 @@ impl SubscriptionListener for MySubscriptionListener {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    //
+    // Create a new subscription instance.
+    //
     let mut my_subscription = Subscription::new(
         SubscriptionMode::Merge,
         Some(vec![
@@ -224,15 +265,43 @@ async fn main() -> Result<(), Box<dyn Error>> {
     my_subscription.set_requested_snapshot(Some(Snapshot::Yes))?;
     my_subscription.add_listener(Box::new(MySubscriptionListener {}));
 
-    let mut client = LightstreamerClient::new(
+    // Create a new Lightstreamer client instance and wrap it in an Arc<Mutex<>> so it can be shared across threads.
+    let client = Arc::new(Mutex::new(LightstreamerClient::new(
         Some("http://push.lightstreamer.com/lightstreamer"),
         Some("DEMO"),
-    )?;
+    )?));
 
-    client.subscribe(my_subscription);
-    println!("Client: {:?}", client);
+    //
+    // Add the subscription to the client.
+    //
+    {
+        let mut client = client.lock().await;
+        client.subscribe(my_subscription);
+    }
 
-    client.connect();
+    // Spawn a new thread to handle SIGINT and SIGTERM process signals.
+    setup_signal_hook(client.clone()).await;
 
-    Ok(())
+    //
+    // Infinite loop that will indefinitely retry failed connections unless
+    // a SIGTERM or SIGINT signal is received.
+    //
+    let mut retry_interval_milis: u64 = 0;
+    let mut retry_counter: u64 = 0;
+    loop {
+        let mut client = client.lock().await;
+        match client.connect() {
+            Ok(_) => {}
+            Err(e) => {
+                println!("Failed to connect: {:?}", e);
+                tokio::time::sleep(std::time::Duration::from_millis(retry_interval_milis)).await;
+                retry_interval_milis = (retry_interval_milis + (200 * retry_counter)).min(5000);
+                retry_counter += 1;
+                println!(
+                    "Retrying connection in {} seconds...",
+                    format!("{:.2}", retry_interval_milis as f64 / 1000.0)
+                );
+            }
+        }
+    }
 }
