@@ -1,7 +1,5 @@
-use hyper::server;
-
 use crate::client_listener::ClientListener;
-use crate::IllegalArgumentException;
+use crate::error::IllegalArgumentException;
 
 use std::fmt::{self, Debug, Formatter};
 
@@ -62,6 +60,22 @@ impl ConnectionDetails {
     /// A canonical representation of an IP address (it can be either IPv4 or IPv6), or `None`.
     pub fn get_client_ip(&self) -> Option<&String> {
         self.client_ip.as_ref()
+    }
+
+    /// Retrieves a reference to the password, if set.
+    ///
+    /// This method is crucial for accessing sensitive information in a controlled manner. It returns
+    /// an immutable reference to the password, encapsulated within an `Option`. The use of `Option`
+    /// signifies that the password may or may not be present, thus providing flexibility in scenarios
+    /// where a password is optional. By returning a reference, we avoid unnecessary cloning of the
+    /// password data, which could have security implications and also incur a performance cost.
+    ///
+    /// # Returns
+    /// An `Option` containing a reference to the password `String` if it exists, or `None` if the
+    /// password has not been set. This allows calling code to handle the presence or absence of a
+    /// password appropriately without risking exposure of the password itself.
+    pub fn get_password(&self) -> Option<&String> {
+        self.password.as_ref()
     }
 
     /// Inquiry method that gets the configured address of Lightstreamer Server.

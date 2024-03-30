@@ -1,9 +1,9 @@
+use crate::error::IllegalArgumentException;
+use crate::ls_client::Transport;
 use crate::proxy::Proxy;
-use crate::IllegalArgumentException;
 
 use std::collections::HashMap;
 use std::fmt::{self, Debug, Formatter};
-use std::hash::DefaultHasher;
 
 /// Used by LightstreamerClient to provide an extra connection properties data object.
 /// Data struct that contains the policy settings used to connect to a Lightstreamer Server.
@@ -13,7 +13,7 @@ use std::hash::DefaultHasher;
 pub struct ConnectionOptions {
     content_length: Option<u64>,
     first_retry_max_delay: u64,
-    forced_transport: Option<String>,
+    forced_transport: Option<Transport>,
     http_extra_headers: Option<HashMap<String, String>>,
     http_extra_headers_on_session_creation_only: bool,
     idle_timeout: u64,
@@ -97,7 +97,7 @@ impl ConnectionOptions {
     /// The forced transport or `None`
     ///
     /// See also `setForcedTransport()`
-    pub fn get_forced_transport(&self) -> Option<&String> {
+    pub fn get_forced_transport(&self) -> Option<&Transport> {
         self.forced_transport.as_ref()
     }
 
@@ -423,25 +423,8 @@ impl ConnectionOptions {
     /// # Raises
     ///
     /// * `IllegalArgumentException`: if the given value is not in the list of the admitted ones.
-    pub fn set_forced_transport(&mut self, forced_transport: Option<String>) -> Result<(), IllegalArgumentException> {
-        let valid_transports = vec![
-            None,
-            Some("WS".to_string()),
-            Some("HTTP".to_string()),
-            Some("WS-STREAMING".to_string()),
-            Some("HTTP-STREAMING".to_string()),
-            Some("WS-POLLING".to_string()),
-            Some("HTTP-POLLING".to_string()),
-        ];
-
-        if !valid_transports.contains(&forced_transport) {
-            return Err(IllegalArgumentException::new(
-                "Invalid forced transport value",
-            ));
-        }
-
+    pub fn set_forced_transport(&mut self, forced_transport: Option<Transport>) {
         self.forced_transport = forced_transport;
-        Ok(())
     }
 
     /// Setter method that enables/disables the setting of extra HTTP headers to all the request
