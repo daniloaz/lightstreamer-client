@@ -22,12 +22,6 @@ impl Error for IllegalArgumentException {
     }
 }
 
-impl From<Box<dyn Error>> for IllegalArgumentException {
-    fn from(error: Box<dyn Error>) -> Self {
-        IllegalArgumentException::new(&error.to_string())
-    }
-}
-
 #[derive(Debug)]
 pub struct IllegalStateException {
     details: String
@@ -48,23 +42,5 @@ impl fmt::Display for IllegalStateException {
 impl Error for IllegalStateException {
     fn description(&self) -> &str {
         &self.details
-    }
-}
-
-impl From<Box<dyn Error>> for IllegalStateException {
-    fn from(error: Box<dyn Error>) -> Self {
-        IllegalStateException::new(&error.to_string())
-    }
-}
-
-impl From<serde_urlencoded::ser::Error> for IllegalStateException {
-    fn from(err: serde_urlencoded::ser::Error) -> Self {
-        IllegalStateException::new(&format!("Serialization error: {}", err))
-    }
-}
-
-impl From<tokio_tungstenite::tungstenite::Error> for IllegalStateException {
-    fn from(err: tokio_tungstenite::tungstenite::Error) -> Self {
-        IllegalStateException::new(&format!("WebSocket error: {}", err))
     }
 }
