@@ -16,6 +16,8 @@ use std::sync::Arc;
 use tokio::sync::{Notify, Mutex};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 
+const MAX_CONNECTION_ATTEMPTS: u64 = 1;
+
 /// Sets up a signal hook for SIGINT and SIGTERM.
 ///
 /// Creates a signal hook for the specified signals and spawns a thread to handle them.
@@ -79,7 +81,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Create a new Lightstreamer client instance and wrap it in an Arc<Mutex<>> so it can be shared across threads.
     let client = Arc::new(Mutex::new(LightstreamerClient::new(
         Some("http://push.lightstreamer.com/lightstreamer"),
-        Some("DEMO"),
+        Some("QUOTE_ADAPTER"),
     )?));
 
     //
@@ -102,7 +104,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     //
     let mut retry_interval_milis: u64 = 0;
     let mut retry_counter: u64 = 0;
-    while retry_counter < 5 {
+    while retry_counter < MAX_CONNECTION_ATTEMPTS {
         let mut client = client.lock().await;
         match client.connect(Arc::clone(&shutdown_signal)).await {
             Ok(_) => {
