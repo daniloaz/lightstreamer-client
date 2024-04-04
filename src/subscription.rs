@@ -3,12 +3,30 @@ use std::collections::HashMap;
 use std::fmt::{self, Debug, Formatter};
 
 /// Enum representing the snapshot delivery preferences to be requested to Lightstreamer Server for the items in the Subscription.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub enum Snapshot {
     Yes,
     No,
     Number(usize),
+    #[default]
     None,
+}
+
+impl Default for &Snapshot {
+    fn default() -> Self {
+        &Snapshot::None
+    }
+}
+
+impl ToString for Snapshot {
+    fn to_string(&self) -> String {
+        match self {
+            Snapshot::Yes => "true".to_string(),
+            Snapshot::No => "false".to_string(),
+            Snapshot::Number(n) => n.to_string(),
+            Snapshot::None => "none".to_string(),
+        }
+    }
 }
 
 /// Enum representing the subscription mode.
@@ -28,6 +46,17 @@ impl SubscriptionMode {
             "raw" => Ok(SubscriptionMode::Raw),
             "command" => Ok(SubscriptionMode::Command),
             _ => Err(format!("Invalid subscription mode: {}", s)),
+        }
+    }
+}
+
+impl ToString for SubscriptionMode {
+    fn to_string(&self) -> String {
+        match self {
+            SubscriptionMode::Merge => "MERGE".to_string(),
+            SubscriptionMode::Distinct => "DISTINCT".to_string(),
+            SubscriptionMode::Raw => "RAW".to_string(),
+            SubscriptionMode::Command => "COMMAND".to_string(),
         }
     }
 }
@@ -187,7 +216,7 @@ impl Subscription {
     /// - `group`: A String to be expanded into an item list by the Metadata Adapter.
     pub fn set_item_group(&mut self, group: String) -> Result<(), String> {
         if self.is_active {
-            return Err("Subscription is active".to_string());
+            return Err("Subscription is active. This method can only be called while the Subscription instance is in its 'inactive' state.".to_string());
         }
         self.item_group = Some(group);
         Ok(())
