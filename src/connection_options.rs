@@ -239,6 +239,13 @@ impl ConnectionOptions {
         self.reverse_heartbeat_interval
     }
 
+    /// Inquiry method that gets if LS_send_sync is to be sent to the server.
+    /// If set to false, instructs the Server not to send the SYNC notifications on this connection.
+    /// If omitted, the default is true.
+    pub fn get_send_sync(&self) -> bool {
+        self.send_sync
+    }
+
     /// Inquiry method that gets the maximum time allowed for attempts to recover the current session
     /// upon an interruption, after which a new session will be created. A 0 value also means that
     /// any attempt to recover the current session is prevented in the first place.
