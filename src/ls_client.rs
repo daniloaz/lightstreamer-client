@@ -362,15 +362,9 @@ impl LightstreamerClient {
         let (mut write_stream, mut read_stream) = ws_stream.split();
 
         //
-        // Confirm the connection by sending a 'wsok' message to the server.
-        //
-        
-        //
         // Initiate communication with the server by sending a 'wsok' message.
         //
-        write_stream
-            .send(Message::Text("wsok".into()))
-            .await?;
+        write_stream.send(Message::Text("wsok".into())).await?;
 
         //
         // Start reading and processing messages from the server.
