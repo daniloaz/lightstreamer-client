@@ -67,7 +67,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut my_subscription = Subscription::new(
         SubscriptionMode::Merge,
         Some(vec![
-            "item1".to_string(),
+            "item2".to_string(),
             "item2".to_string(),
             "item3".to_string(),
         ]),
@@ -124,7 +124,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    if retry_counter == 5 {
+    if retry_counter == MAX_CONNECTION_ATTEMPTS {
         println!("Failed to connect after {} retries. Exiting...", retry_counter);
     } else {
         println!("Exiting orderly from Lightstreamer client...");

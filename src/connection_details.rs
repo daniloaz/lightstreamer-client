@@ -1,6 +1,7 @@
 use crate::client_listener::ClientListener;
 use crate::error::IllegalArgumentException;
 
+use std::error::Error;
 use std::fmt::{self, Debug, Formatter};
 
 /// Used by `LightstreamerClient` to provide a basic connection properties data object.
@@ -170,12 +171,12 @@ impl ConnectionDetails {
     }
 
     /// Creates a new ConnectionDetails object with default values.
-    pub fn new(server_address: Option<&str>, adapter_set: Option<&str>) -> ConnectionDetails {
-        ConnectionDetails {
-            server_address: server_address.map(|s| s.to_string()), // convert &str to String
-            adapter_set: adapter_set.map(|s| s.to_string()), // convert &str to String
-            ..Default::default()
-        }
+    pub fn new(server_address: Option<&str>, adapter_set: Option<&str>) -> Result<ConnectionDetails, Box<dyn Error>> {
+        let mut connection_details = ConnectionDetails::default();
+        connection_details.set_server_address(server_address.map(|s| s.to_string()))?;
+        connection_details.set_adapter_set(adapter_set.map(|s| s.to_string()));
+
+        Ok(connection_details)
     }
 
     /// Setter method that sets the name of the Adapter Set mounted on Lightstreamer Server to
@@ -202,7 +203,7 @@ impl ConnectionDetails {
     /// * `adapter_set`: The name of the Adapter Set to be used. A `None` value is equivalent to
     ///   the "DEFAULT" name.
     pub fn set_adapter_set(&mut self, adapter_set: Option<String>) {
-        self.adapter_set = adapter_set;
+        self.adapter_set = Some(adapter_set.unwrap_or("DEFAULT".to_string()));
 
         // Notify listeners about the property change
         for listener in &self.listeners {

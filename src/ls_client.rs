@@ -496,6 +496,7 @@ impl LightstreamerClient {
                                     //
                                     "u" => {
                                         println!("Received data update from server: '{}'", clean_text);
+
                                     },
                                     //
                                     // Connection confirmation from server.
@@ -703,8 +704,8 @@ impl LightstreamerClient {
     pub fn new(
         server_address: Option<&str>,
         adapter_set: Option<&str>,
-    ) -> Result<LightstreamerClient, IllegalStateException> {
-        let connection_details = ConnectionDetails::new(server_address, adapter_set);
+    ) -> Result<LightstreamerClient, Box<dyn Error>> {
+        let connection_details = ConnectionDetails::new(server_address, adapter_set)?;
         let connection_options = ConnectionOptions::default();
 
         Ok(LightstreamerClient {
