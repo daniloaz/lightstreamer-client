@@ -509,7 +509,7 @@ impl LightstreamerClient {
                                         println!("self.connection_options.get_send_sync(): {:?}", self.connection_options.get_send_sync());
                                         let mut params: Vec<(&str, &str)> = vec![
                                             ("LS_adapter_set", &ls_adapter_set),
-                                            ("LS_cid", "mgQkwtwdysogQz2BJ4Ji%20kOj2Bg"),
+                                            ("LS_cid", "mgQkwtwdysogQz2BJ4Ji kOj2Bg"),
                                             ("LS_send_sync", &ls_send_sync),
                                             ("LS_protocol", "TLCP-2.4.0"),
                                         ];
