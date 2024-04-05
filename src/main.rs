@@ -82,6 +82,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let client = Arc::new(Mutex::new(LightstreamerClient::new(
         Some("http://push.lightstreamer.com/lightstreamer"),
         Some("DEMO"),
+        None,
+        None,
     )?));
 
     //

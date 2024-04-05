@@ -212,15 +212,6 @@ impl LightstreamerClient {
 
         /*
 
-        if let Some(user) = &self.connection_details.get_user() {
-            params.insert("LS_user", user);
-        }
-
-        if let Some(password) = &self.connection_details.get_password() {
-            params.insert("LS_password", password);
-        }
-
-
         if let Some(requested_max_bandwidth) = self.connection_options.get_requested_max_bandwidth() {
             params.insert("LS_requested_max_bandwidth", &requested_max_bandwidth.to_string());
         }
@@ -322,7 +313,7 @@ impl LightstreamerClient {
             )
             .header(
                 HeaderName::from_static("sec-websocket-protocol"),
-                HeaderValue::from_static("TLCP-2.5.0.lightstreamer.com"),
+                HeaderValue::from_static("TLCP-2.4.0.lightstreamer.com"),
             )
             .header(
                 HeaderName::from_static("sec-websocket-version"),
@@ -516,12 +507,18 @@ impl LightstreamerClient {
                                         };
                                         let ls_send_sync = self.connection_options.get_send_sync().to_string();
                                         println!("self.connection_options.get_send_sync(): {:?}", self.connection_options.get_send_sync());
-                                        let params: Vec<(&str, &str)> = vec![
+                                        let mut params: Vec<(&str, &str)> = vec![
                                             ("LS_adapter_set", &ls_adapter_set),
                                             ("LS_cid", "mgQkwtwdysogQz2BJ4Ji%20kOj2Bg"),
                                             ("LS_send_sync", &ls_send_sync),
-                                            ("LS_protocol", "TLCP-2.5.0"),
+                                            ("LS_protocol", "TLCP-2.4.0"),
                                         ];
+                                        if let Some(user) = &self.connection_details.get_user() {
+                                            params.push(("LS_user", user));
+                                        }
+                                        if let Some(password) = &self.connection_details.get_password() {
+                                            params.push(("LS_password", password));
+                                        }
                                         let encoded_params = serde_urlencoded::to_string(&params)?;
                                         write_stream
                                             .send(Message::Text(format!("create_session\r\n{}\n", encoded_params)))
@@ -704,8 +701,11 @@ impl LightstreamerClient {
     pub fn new(
         server_address: Option<&str>,
         adapter_set: Option<&str>,
+        username: Option<&str>,
+        password: Option<&str>,
     ) -> Result<LightstreamerClient, Box<dyn Error>> {
-        let connection_details = ConnectionDetails::new(server_address, adapter_set)?;
+        let connection_details =
+            ConnectionDetails::new(server_address, adapter_set, username, password)?;
         let connection_options = ConnectionOptions::default();
 
         Ok(LightstreamerClient {

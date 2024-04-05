@@ -171,10 +171,17 @@ impl ConnectionDetails {
     }
 
     /// Creates a new ConnectionDetails object with default values.
-    pub fn new(server_address: Option<&str>, adapter_set: Option<&str>) -> Result<ConnectionDetails, Box<dyn Error>> {
+    pub fn new(
+        server_address: Option<&str>,
+        adapter_set: Option<&str>,
+        user: Option<&str>,
+        password: Option<&str>,
+    ) -> Result<ConnectionDetails, Box<dyn Error>> {
         let mut connection_details = ConnectionDetails::default();
         connection_details.set_server_address(server_address.map(|s| s.to_string()))?;
         connection_details.set_adapter_set(adapter_set.map(|s| s.to_string()));
+        connection_details.set_user(user.map(|s| s.to_string()));
+        connection_details.set_password(password.map(|s| s.to_string()));
 
         Ok(connection_details)
     }

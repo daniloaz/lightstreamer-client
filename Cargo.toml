@@ -1,6 +1,6 @@
 [package]
 name = "lightstreamer-client"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 authors = ["Daniel López Azaña <daniloaz@gmail.com>"]
 description = "A Rust client for Lightstreamer, designed to facilitate real-time communication with Lightstreamer servers."
