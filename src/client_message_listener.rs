@@ -15,8 +15,9 @@ pub trait ClientMessageListener {
     /// * `sent_on_network`: `true` if the message was sent on the network, `false` otherwise.
     ///   Even if the flag is `true`, it is not possible to infer whether the message actually
     ///   reached the Lightstreamer Server or not.
-    fn on_abort(&self, msg: &str, sent_on_network: bool) {
+    fn on_abort(&self, _msg: &str, _sent_on_network: bool) {
         // Implementation for on_abort
+        unimplemented!("Implement on_abort method for ClientMessageListener.");
     }
 
     /// Event handler that is called by Lightstreamer when the related message has been processed
@@ -29,8 +30,9 @@ pub trait ClientMessageListener {
     ///   - `<= 0`: the Metadata Adapter has refused the message; the code value is dependent
     ///     on the specific Metadata Adapter implementation.
     /// * `error`: the description of the error sent by the Server.
-    fn on_deny(&self, msg: &str, code: i32, error: &str) {
+    fn on_deny(&self, _msg: &str, _code: i32, _error: &str) {
         // Implementation for on_deny
+        unimplemented!("Implement on_deny method for ClientMessageListener.");
     }
 
     /// Event handler that is called by Lightstreamer to notify that the related message has
@@ -40,8 +42,9 @@ pub trait ClientMessageListener {
     /// # Parameters
     ///
     /// * `msg`: the message to which this notification is related.
-    fn on_discarded(&self, msg: &str) {
+    fn on_discarded(&self, _msg: &str) {
         // Implementation for on_discarded
+        unimplemented!("Implement on_discarded method for ClientMessageListener.");
     }
 
     /// Event handler that is called by Lightstreamer when the related message has been processed
@@ -51,8 +54,9 @@ pub trait ClientMessageListener {
     /// # Parameters
     ///
     /// * `msg`: the message to which this notification is related.
-    fn on_error(&self, msg: &str) {
+    fn on_error(&self, _msg: &str) {
         // Implementation for on_error
+        unimplemented!("Implement on_error method for ClientMessageListener.");
     }
 
     /// Event handler that is called by Lightstreamer when the related message has been processed
@@ -63,7 +67,8 @@ pub trait ClientMessageListener {
     /// * `msg`: the message to which this notification is related.
     /// * `response`: the response from the Metadata Adapter. If not supplied (i.e. supplied as `None`),
     ///   an empty message is received here.
-    fn on_processed(&self, msg: &str, response: Option<&str>) {
+    fn on_processed(&self, _msg: &str, _response: Option<&str>) {
         // Implementation for on_processed
+        unimplemented!("Implement on_processed method for ClientMessageListener.");
     }
 }

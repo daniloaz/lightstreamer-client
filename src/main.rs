@@ -1,20 +1,13 @@
-use hyper::client;
 use lightstreamer_client::item_update::ItemUpdate;
 use lightstreamer_client::ls_client::{LightstreamerClient, Transport};
 use lightstreamer_client::subscription::{Snapshot, Subscription, SubscriptionMode};
 use lightstreamer_client::subscription_listener::SubscriptionListener;
 
-use futures::stream::StreamExt;
-use futures::SinkExt;
-use reqwest::Client;
-use serde_urlencoded;
 use signal_hook::low_level::signal_name;
 use signal_hook::{consts::SIGINT, consts::SIGTERM, iterator::Signals};
 use std::error::Error;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tokio::sync::{Notify, Mutex};
-use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 
 const MAX_CONNECTION_ATTEMPTS: u64 = 1;
 

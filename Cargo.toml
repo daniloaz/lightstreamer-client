@@ -1,6 +1,6 @@
 [package]
 name = "lightstreamer-client"
-version = "0.1.6"
+version = "0.1.7"
 edition = "2021"
 authors = ["Daniel López Azaña <daniloaz@gmail.com>"]
 description = "A Rust client for Lightstreamer, designed to facilitate real-time communication with Lightstreamer servers."
@@ -14,7 +14,6 @@ documentation = "https://github.com/daniloaz/lightstreamer-client#readme"
 cookie = { version = "0", features = ["percent-encode"]}
 futures = "0"
 futures-util = "0"
-hyper = { version = "1", features = ["full"] }
 reqwest = { version = "0", features = ["json", "stream"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1" }

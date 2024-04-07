@@ -32,8 +32,9 @@ pub trait SubscriptionListener: Send {
     /// - `item_name`: name of the involved item. If the Subscription was initialized using an
     ///   "Item Group" then a `None` value is supplied.
     /// - `item_pos`: 1-based position of the item within the "Item List" or "Item Group".
-    fn on_clear_snapshot(&mut self, item_name: Option<&str>, item_pos: usize) {
+    fn on_clear_snapshot(&mut self, _item_name: Option<&str>, _item_pos: usize) {
         // Default implementation does nothing.
+        unimplemented!("Implement on_clear_snapshot method for SubscriptionListener.");
     }
 
     /// Event handler that is called by Lightstreamer to notify that, due to internal resource
@@ -54,8 +55,9 @@ pub trait SubscriptionListener: Send {
     /// - `Subscription::set_requested_max_frequency()`
     /// - `Subscription::set_command_second_level_fields()`
     /// - `Subscription::set_command_second_level_field_schema()`
-    fn on_command_second_level_item_lost_updates(&mut self, lost_updates: u32, key: &str) {
+    fn on_command_second_level_item_lost_updates(&mut self, _lost_updates: u32, _key: &str) {
         // Default implementation does nothing.
+        unimplemented!("Implement on_command_second_level_item_lost_updates method for SubscriptionListener.");
     }
 
     /// Event handler that is called when the Server notifies an error on a second-level subscription.
@@ -87,8 +89,9 @@ pub trait SubscriptionListener: Send {
     /// - `ConnectionDetails::set_adapter_set()`
     /// - `Subscription::set_command_second_level_fields()`
     /// - `Subscription::set_command_second_level_field_schema()`
-    fn on_command_second_level_subscription_error(&mut self, code: i32, message: Option<&str>, key: &str) {
+    fn on_command_second_level_subscription_error(&mut self, _code: i32, _message: Option<&str>, _key: &str) {
         // Default implementation does nothing.
+        unimplemented!("Implement on_command_second_level_subscription_error method for SubscriptionListener.");
     }
 
     /// Event handler that is called by Lightstreamer to notify that all snapshot events for an item
@@ -114,8 +117,9 @@ pub trait SubscriptionListener: Send {
     ///
     /// - `Subscription::set_requested_snapshot()`
     /// - `ItemUpdate::is_snapshot()`
-    fn on_end_of_snapshot(&mut self, item_name: Option<&str>, item_pos: usize) {
+    fn on_end_of_snapshot(&mut self, _item_name: Option<&str>, _item_pos: usize) {
         // Default implementation does nothing.
+        unimplemented!("Implement on_end_of_snapshot method for SubscriptionListener.");
     }
 
     /// Event handler that is called by Lightstreamer to notify that, due to internal resource
@@ -139,8 +143,9 @@ pub trait SubscriptionListener: Send {
     /// # See also
     ///
     /// - `Subscription::set_requested_max_frequency()`
-    fn on_item_lost_updates(&mut self, item_name: Option<&str>, item_pos: usize, lost_updates: u32) {
+    fn on_item_lost_updates(&mut self, _item_name: Option<&str>, _item_pos: usize, _lost_updates: u32) {
         // Default implementation does nothing.
+        unimplemented!("Implement on_item_lost_updates method for SubscriptionListener.");
     }
 
     /// Event handler that is called by Lightstreamer each time an update pertaining to an item
@@ -151,8 +156,9 @@ pub trait SubscriptionListener: Send {
     /// - `update`: a value object containing the updated values for all the fields, together with
     ///   meta-information about the update itself and some helper methods that can be used to
     ///   iterate through all or new values.
-    fn on_item_update(&mut self, update: ItemUpdate) {
+    fn on_item_update(&mut self, _update: ItemUpdate) {
         // Default implementation does nothing.
+        unimplemented!("Implement on_item_update method for SubscriptionListener.");
     }
 
     /// Event handler that receives a notification when the `SubscriptionListener` instance is
@@ -189,8 +195,9 @@ pub trait SubscriptionListener: Send {
     /// - `frequency`: A decimal number, representing the maximum frequency applied by the Server
     ///   (expressed in updates per second), or the string "unlimited". A `None` value is possible in
     ///   rare cases, when the frequency can no longer be determined.
-    fn on_real_max_frequency(&mut self, frequency: Option<f64>) {
+    fn on_real_max_frequency(&mut self, _frequency: Option<f64>) {
         // Default implementation does nothing.
+        unimplemented!("Implement on_real_max_frequency method for SubscriptionListener.");
     }
 
     /// Event handler that is called by Lightstreamer to notify that a Subscription has been successfully
@@ -244,8 +251,9 @@ pub trait SubscriptionListener: Send {
     /// # See also
     ///
     /// - `ConnectionDetails::set_adapter_set()`
-    fn on_subscription_error(&mut self, code: i32, message: Option<&str>) {
+    fn on_subscription_error(&mut self, _code: i32, _message: Option<&str>) {
         // Default implementation does nothing.
+        unimplemented!("Implement on_subscription_error method for SubscriptionListener.");
     }
 
     /// Event handler that is called by Lightstreamer to notify that a Subscription has been successfully

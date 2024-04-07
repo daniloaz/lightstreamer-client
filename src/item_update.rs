@@ -106,7 +106,7 @@ impl ItemUpdate {
             .changed_fields
             .iter()
             .enumerate()
-            .map(|(i, (k, v))| (i + 1, v.clone()))
+            .map(|(i, (_k, v))| (i + 1, v.clone()))
             .collect();
         changed_fields_by_pos
     }

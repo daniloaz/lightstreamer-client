@@ -359,7 +359,7 @@ impl ConnectionDetails {
     /// # Parameters
     ///
     /// * `listener`: The listener to be removed.
-    pub fn remove_listener(&mut self, listener: Box<dyn ClientListener>) {
+    pub fn remove_listener(&mut self, _listener: Box<dyn ClientListener>) {
         unimplemented!("Implement mechanism to remove listener from ConnectionDetails.");
         //self.listeners.remove(&listener);
     }

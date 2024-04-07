@@ -8,7 +8,6 @@ use crate::util::*;
 
 use cookie::Cookie;
 use futures_util::{SinkExt, StreamExt};
-use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::{self, Debug, Formatter};
 use std::sync::Arc;
@@ -123,6 +122,14 @@ impl LightstreamerClient {
     /// A constant string representing the version of the library.
     pub const LIB_VERSION: &'static str = "0.1.0";
 
+    //
+    // Constants for WebSocket connection.
+    //
+    pub const SEC_WEBSOCKET_KEY: &'static str = "PNDUibe9ex7PnsrLbt0N4w==";
+    pub const SEC_WEBSOCKET_PROTOCOL: &'static str ="TLCP-2.4.0.lightstreamer.com";
+    pub const SEC_WEBSOCKET_VERSION: &'static str = "13";
+    pub const SEC_WEBSOCKET_UPGRADE: &'static str = "websocket";
+
     /// A constant string representing the version of the TLCP protocol used by the library.
     pub const TLCP_VERSION: &'static str = "TLCP-2.4.0";
 
@@ -142,8 +149,9 @@ impl LightstreamerClient {
     /// * `cookies`: an instance of `http.cookies.SimpleCookie`.
     ///
     /// See also `getCookies()`
-    pub fn add_cookies(uri: &str, cookies: &Cookie) {
+    pub fn add_cookies(_uri: &str, _cookies: &Cookie) {
         // Implementation for add_cookies
+        unimplemented!("Implement mechanism to add cookies to LightstreamerClient");
     }
 
     /// Adds a listener that will receive events from the `LightstreamerClient` instance.
@@ -194,12 +202,15 @@ impl LightstreamerClient {
     ///
     /// See also `ConnectionDetails.setServerAddress()`
     pub async fn connect(&mut self, shutdown_signal: Arc<Notify>) -> Result<(), Box<dyn Error>> {
+        // Check if the server address is configured.
         if self.server_address.is_none() {
             return Err(Box::new(IllegalStateException::new(
                 "No server address was configured.",
             )));
         }
-
+        //
+        // Only WebSocket streaming transport is currently supported.
+        //
         let forced_transport = self.connection_options.get_forced_transport();
         if forced_transport.is_none()
             || *forced_transport.unwrap() /* unwrap() is safe here */ != Transport::WsStreaming
@@ -208,70 +219,6 @@ impl LightstreamerClient {
                 "Only WebSocket streaming transport is currently supported.",
             )));
         }
-
-        //
-        // Add optional parameters
-        //
-
-        /*
-
-        if let Some(requested_max_bandwidth) = self.connection_options.get_requested_max_bandwidth() {
-            params.insert("LS_requested_max_bandwidth", &requested_max_bandwidth.to_string());
-        }
-
-        if let Some(content_length) = self.connection_options.get_content_length() {
-            params.insert("LS_content_length", &content_length.to_string());
-        }
-
-        if let Some(supported_diffs) = &self.connection_options.get_supported_diffs() {
-            params.insert("LS_supported_diffs", supported_diffs);
-        }
-
-        if self.connection_options.is_polling() {
-            params.insert("LS_polling", "true");
-            if let Some(polling_millis) = self.connection_options.get_polling_millis() {
-                params.insert("LS_polling_millis", &polling_millis.to_string());
-            }
-
-            if let Some(idle_millis) = self.connection_options.get_idle_millis() {
-                params.insert("LS_idle_millis", &idle_millis.to_string());
-            }
-        } else {
-            if let Some(inactivity_millis) = self.connection_options.get_inactivity_millis() {
-                params.insert("LS_inactivity_millis", &inactivity_millis.to_string());
-            }
-
-            if let Some(keepalive_millis) = self.connection_options.get_keepalive_millis() {
-                params.insert("LS_keepalive_millis", &keepalive_millis.to_string());
-            }
-
-            if !self.connection_options.is_send_sync() {
-                params.insert("LS_send_sync", "false");
-            }
-        }
-
-        if self.connection_options.is_reduce_head() {
-            params.insert("LS_reduce_head", "true");
-        }
-
-        if let Some(ttl_millis) = self.connection_options.get_ttl_millis() {
-            params.insert("LS_ttl_millis", &ttl_millis.to_string());
-        }
-
-        // Build the request body
-        let request_body = build_request_body(&params);
-
-        // Send the create session request
-        let response = send_create_session_request(
-            &self.server_address.as_ref().unwrap(),
-            &request_body,
-        )?;
-
-        // Process the server response
-        process_create_session_response(&response)?;
-
-        */
-
         //
         // Convert the HTTP URL to a WebSocket URL.
         //
@@ -312,19 +259,19 @@ impl LightstreamerClient {
             )
             .header(
                 HeaderName::from_static("sec-websocket-key"),
-                HeaderValue::from_static("PNDUibe9ex7PnsrLbt0N4w=="),
+                HeaderValue::from_static(Self::SEC_WEBSOCKET_KEY),
             )
             .header(
                 HeaderName::from_static("sec-websocket-protocol"),
-                HeaderValue::from_static("TLCP-2.4.0.lightstreamer.com"),
+                HeaderValue::from_static(Self::SEC_WEBSOCKET_PROTOCOL),
             )
             .header(
                 HeaderName::from_static("sec-websocket-version"),
-                HeaderValue::from_static("13"),
+                HeaderValue::from_static(Self::SEC_WEBSOCKET_VERSION),
             )
             .header(
                 HeaderName::from_static("upgrade"),
-                HeaderValue::from_static("websocket"),
+                HeaderValue::from_static(Self::SEC_WEBSOCKET_UPGRADE),
             )
             .body(())?;
 
@@ -364,7 +311,7 @@ impl LightstreamerClient {
         // Start reading and processing messages from the server.
         //
         let mut request_id: usize = 0;
-        let mut session_id: Option<String> = None;
+        let mut _session_id: Option<String> = None;
         let mut subscription_id: usize = 0;
         loop {
             tokio::select! {
@@ -613,7 +560,7 @@ impl LightstreamerClient {
     ///
     /// A list with the various cookies that can be sent in a HTTP request for the specified URI.
     /// If a `None` URI was supplied, all available non-expired cookies will be returned.
-    pub fn get_cookies(uri: Option<&str>) -> Cookie {
+    pub fn get_cookies(_uri: Option<&str>) -> Cookie {
         // Implementation for get_cookies
         unimplemented!()
     }
@@ -737,7 +684,7 @@ impl LightstreamerClient {
     /// * `listener`: The listener to be removed.
     ///
     /// See also `addListener()`
-    pub fn remove_listener(&mut self, listener: Box<dyn ClientListener>) {
+    pub fn remove_listener(&mut self, _listener: Box<dyn ClientListener>) {
         unimplemented!("Implement mechanism to remove listener from LightstreamerClient");
         //self.listeners.remove(&listener);
     }
@@ -822,19 +769,19 @@ impl LightstreamerClient {
         &mut self,
         message: &str,
         sequence: Option<&str>,
-        delay_timeout: Option<u64>,
+        _delay_timeout: Option<u64>,
         listener: Option<Box<dyn ClientMessageListener>>,
         enqueue_while_disconnected: bool,
     ) {
-        let sequence = sequence.unwrap_or_else(|| "UNORDERED_MESSAGES");
+        let _sequence = sequence.unwrap_or_else(|| "UNORDERED_MESSAGES");
 
         // Handle the message based on the current connection status
         match &self.status {
-            ClientStatus::Connected(connection_type) => {
+            ClientStatus::Connected(_connection_type) => {
                 // Send the message to the server in a separate thread
                 // ...
             }
-            ClientStatus::Disconnected(disconnection_type) => {
+            ClientStatus::Disconnected(_disconnection_type) => {
                 if enqueue_while_disconnected {
                     // Enqueue the message to be sent when a connection is available
                     // ...
@@ -850,6 +797,7 @@ impl LightstreamerClient {
                 // ...
             }
         }
+        unimplemented!("Complete mechanism to send message to LightstreamerClient.");
     }
 
     /// Static method that permits to configure the logging system used by the library. The logging
@@ -958,7 +906,7 @@ impl LightstreamerClient {
     ///
     /// * `subscription`: An "active" `Subscription` object that was activated by this `LightstreamerClient`
     ///   instance.
-    pub fn unsubscribe(&mut self, subscription: Subscription) {
+    pub fn unsubscribe(&mut self, _subscription: Subscription) {
         unimplemented!("Implement mechanism to unsubscribe from LightstreamerClient.");
     }
     /*

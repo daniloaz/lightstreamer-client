@@ -63,8 +63,9 @@ pub trait ClientListener: Debug + Send {
     /// See also `LightstreamerClient.connectionDetails`
     ///
     /// See also `LightstreamerClient.connectionOptions`
-    fn on_property_change(&self, property: &str) {
+    fn on_property_change(&self, _property: &str) {
         // Implementation for on_property_change
+        unimplemented!("Implement on_property_change method for ClientListener");
     }
 
     /// Event handler that is called when the Server notifies a refusal on the client attempt
@@ -101,8 +102,9 @@ pub trait ClientListener: Debug + Send {
     /// See also `onStatusChange()`
     ///
     /// See also `ConnectionDetails.setAdapterSet()`
-    fn on_server_error(&self, code: i32, message: &str) {
+    fn on_server_error(&self, _code: i32, _message: &str) {
         // Implementation for on_server_error
+        unimplemented!("Implement on_server_error method for ClientListener");
     }
 
     /// Event handler that receives a notification each time the `LightstreamerClient` status has changed.
@@ -179,7 +181,8 @@ pub trait ClientListener: Debug + Send {
     /// See also `LightstreamerClient.disconnect()`
     ///
     /// See also `LightstreamerClient.getStatus()`
-    fn on_status_change(&self, status: &str) {
+    fn on_status_change(&self, _status: &str) {
         // Implementation for on_status_change
+        unimplemented!("Implement on_status_change method for ClientListener");
     }
 }

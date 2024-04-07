@@ -177,7 +177,7 @@ impl Subscription {
             self.listeners.retain(|l| {
                 let l_ref = l.as_ref() as &dyn SubscriptionListener;
                 let listener_ref = listener as &dyn SubscriptionListener;
-                !(l_ref as *const dyn SubscriptionListener == listener_ref as *const dyn SubscriptionListener)
+                !(std::ptr::addr_of!(*l_ref) == std::ptr::addr_of!(*listener_ref))
             });
         }
 
@@ -764,8 +764,9 @@ impl Subscription {
     /// # Returns
     /// The current value for the specified field of the specified key within the specified item (possibly `None`), or `None` if the specified key has not been added yet (note that it might have been added and eventually deleted).
     pub fn get_command_value(&self, item_pos: usize, key: &str, field_pos: usize) -> Option<&String> {
+        let key = format!("{}_{}", item_pos, key);
         self.command_values
-            .get(key)
+            .get(&key)
             .and_then(|fields| fields.get(&field_pos))
     }
 
