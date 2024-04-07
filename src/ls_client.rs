@@ -123,6 +123,9 @@ impl LightstreamerClient {
     /// A constant string representing the version of the library.
     pub const LIB_VERSION: &'static str = "0.1.0";
 
+    /// A constant string representing the version of the TLCP protocol used by the library.
+    pub const TLCP_VERSION: &'static str = "TLCP-2.4.0";
+
     /// Static method that can be used to share cookies between connections to the Server (performed by
     /// this library) and connections to other sites that are performed by the application. With this
     /// method, cookies received by the application can be added (or replaced if already present) to
@@ -440,14 +443,12 @@ impl LightstreamerClient {
                                                 // Prepare the subscription request.
                                                 //
                                                 let mut params: Vec<(&str, &str)> = vec![
-                                                    //("LS_session", session_id),
                                                     ("LS_reqId", &ls_req_id),
                                                     ("LS_op", "add"),
                                                     ("LS_subId", &ls_sub_id),
                                                     ("LS_mode", &ls_mode),
                                                     ("LS_group", &ls_group),
                                                     ("LS_schema", &ls_schema),
-                                                    ("LS_data_adapter", &ls_data_adapter),
                                                     ("LS_ack", "false"),
                                                 ];
                                                 if ls_snapshot != "" {
@@ -475,6 +476,9 @@ impl LightstreamerClient {
                                     },
                                     "probe" => {
                                         println!("Received probe message from server: '{}'", clean_text);
+                                    },
+                                    "reqok" => {
+                                        println!("Received reqok message from server: '{}'", clean_text);
                                     },
                                     //
                                     // Subscription confirmation from server.
@@ -506,12 +510,10 @@ impl LightstreamerClient {
                                             },
                                         };
                                         let ls_send_sync = self.connection_options.get_send_sync().to_string();
-                                        println!("self.connection_options.get_send_sync(): {:?}", self.connection_options.get_send_sync());
                                         let mut params: Vec<(&str, &str)> = vec![
                                             ("LS_adapter_set", &ls_adapter_set),
                                             ("LS_cid", "mgQkwtwdysogQz2BJ4Ji kOj2Bg"),
                                             ("LS_send_sync", &ls_send_sync),
-                                            ("LS_protocol", "TLCP-2.4.0"),
                                         ];
                                         if let Some(user) = &self.connection_details.get_user() {
                                             params.push(("LS_user", user));
@@ -519,6 +521,7 @@ impl LightstreamerClient {
                                         if let Some(password) = &self.connection_details.get_password() {
                                             params.push(("LS_password", password));
                                         }
+                                        params.push(("LS_protocol", Self::TLCP_VERSION));
                                         let encoded_params = serde_urlencoded::to_string(&params)?;
                                         write_stream
                                             .send(Message::Text(format!("create_session\r\n{}\n", encoded_params)))

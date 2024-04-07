@@ -1,5 +1,6 @@
 use crate::subscription_listener::SubscriptionListener;
 use std::collections::HashMap;
+use std::error::Error;
 use std::fmt::{self, Debug, Formatter};
 
 /// Enum representing the snapshot delivery preferences to be requested to Lightstreamer Server for the items in the Subscription.
@@ -116,9 +117,9 @@ impl Subscription {
         mode: SubscriptionMode,
         items: Option<Vec<String>>,
         fields: Option<Vec<String>>,
-    ) -> Result<Subscription, String> {
+    ) -> Result<Subscription, Box<dyn Error>> {
         if items.is_none() || fields.is_none() {
-            return Err("Items and fields must be provided".to_string());
+            return Err("Items and fields must be provided".to_string().into());
         }
 
         Ok(Subscription {
