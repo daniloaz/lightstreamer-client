@@ -443,6 +443,7 @@ impl LightstreamerClient {
                                                 // Prepare the subscription request.
                                                 //
                                                 let mut params: Vec<(&str, &str)> = vec![
+                                                    ("LS_data_adapter", &ls_data_adapter),
                                                     ("LS_reqId", &ls_req_id),
                                                     ("LS_op", "add"),
                                                     ("LS_subId", &ls_sub_id),
@@ -451,6 +452,10 @@ impl LightstreamerClient {
                                                     ("LS_schema", &ls_schema),
                                                     ("LS_ack", "false"),
                                                 ];
+                                                // Remove the data adapter parameter if not specified.
+                                                if ls_data_adapter == "" {
+                                                    params.remove(0);
+                                                }
                                                 if ls_snapshot != "" {
                                                     params.push(("LS_snapshot", &ls_snapshot));
                                                 }
