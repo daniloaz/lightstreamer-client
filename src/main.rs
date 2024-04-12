@@ -60,11 +60,31 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut my_subscription = Subscription::new(
         SubscriptionMode::Merge,
         Some(vec![
-            "item2".to_string(),
+            "item1".to_string(),
             "item2".to_string(),
             "item3".to_string(),
+            "item4".to_string(),
+            "item5".to_string(),
+            "item6".to_string(),
+            "item7".to_string(),
+            "item8".to_string(),
+            "item9".to_string(),
+            "item10".to_string(),
         ]),
-        Some(vec!["stock_name".to_string(), "last_price".to_string()]),
+        Some(vec![
+            "stock_name".to_string(),
+            "last_price".to_string(),
+            "time".to_string(),
+            "pct_change".to_string(),
+            "bid_quantity".to_string(),
+            "bid".to_string(),
+            "ask".to_string(),
+            "ask_quantity".to_string(),
+            "min".to_string(),
+            "max".to_string(),
+            "ref_price".to_string(),
+            "open_price".to_string(),
+        ]),
     )?;
 
     my_subscription.set_data_adapter(Some(String::from("QUOTE_ADAPTER")))?;
