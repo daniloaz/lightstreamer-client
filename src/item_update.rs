@@ -28,7 +28,7 @@ pub struct ItemUpdate {
     pub item_name: Option<String>,
     pub item_pos: usize,
     pub fields: HashMap<String, Option<String>>,
-    pub changed_fields: HashMap<String, Option<String>>,
+    pub changed_fields: HashMap<String, String>,
     pub is_snapshot: bool,
 }
 
@@ -46,7 +46,7 @@ impl ItemUpdate {
     ///
     /// # Returns
     /// A map containing the values for each field changed with the last server update.
-    pub fn get_changed_fields(&self) -> HashMap<String, Option<String>> {
+    pub fn get_changed_fields(&self) -> HashMap<String, String> {
         self.changed_fields.clone()
     }
 
@@ -60,7 +60,7 @@ impl ItemUpdate {
     ///
     /// # Returns
     /// A map containing the values for each field changed with the last server update.
-    pub fn get_changed_fields_by_position(&self) -> HashMap<usize, Option<String>> {
+    pub fn get_changed_fields_by_position(&self) -> HashMap<usize, String> {
         self.changed_fields
             .iter()
             .map(|(name, value)| (self.get_field_position(name), value.clone()))

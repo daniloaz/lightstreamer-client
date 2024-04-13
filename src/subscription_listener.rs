@@ -156,7 +156,7 @@ pub trait SubscriptionListener: Send {
     /// - `update`: a value object containing the updated values for all the fields, together with
     ///   meta-information about the update itself and some helper methods that can be used to
     ///   iterate through all or new values.
-    fn on_item_update(&mut self, _update: ItemUpdate) {
+    fn on_item_update(&self, _update: &ItemUpdate) {
         // Default implementation does nothing.
         unimplemented!("Implement on_item_update method for SubscriptionListener.");
     }

@@ -43,11 +43,34 @@ async fn setup_signal_hook(shutdown_signal: Arc<Notify>) {
 pub struct MySubscriptionListener {}
 
 impl SubscriptionListener for MySubscriptionListener {
-    fn on_item_update(&mut self, update: ItemUpdate) {
+    fn on_item_update(&self, update: &ItemUpdate) {
         println!(
-            "UPDATE {} {}",
-            update.get_value("stock_name").unwrap(),
-            update.get_value("last_price").unwrap()
+            "UPDATE for item '{}' => '{}': {}, '{}': {}, '{}': {}, '{}': {}, '{}': {}, '{}': {}, '{}': {}, '{}': {}, '{}': {}, '{}': {}, '{}': {}, '{}': {}",
+            update.item_name.as_ref().unwrap_or(&"N/A".to_string()),
+            "stock_name",
+            update.get_value("stock_name").unwrap_or(&"N/A".to_string()),
+            "last_price",
+            update.get_value("last_price").unwrap_or(&"N/A".to_string()),
+            "time",
+            update.get_value("time").unwrap_or(&"N/A".to_string()),
+            "pct_change",
+            update.get_value("pct_change").unwrap_or(&"N/A".to_string()),
+            "bid_quantity",
+            update.get_value("bid_quantity").unwrap_or(&"N/A".to_string()),
+            "bid",
+            update.get_value("bid").unwrap_or(&"N/A".to_string()),
+            "ask",
+            update.get_value("ask").unwrap_or(&"N/A".to_string()),
+            "ask_quantity",
+            update.get_value("ask_quantity").unwrap_or(&"N/A".to_string()),
+            "min",
+            update.get_value("min").unwrap_or(&"N/A".to_string()),
+            "max",
+            update.get_value("max").unwrap_or(&"N/A".to_string()),
+            "ref_price",
+            update.get_value("ref_price").unwrap_or(&"N/A".to_string()),
+            "open_price",
+            update.get_value("open_price").unwrap_or(&"N/A".to_string()),
         );
     }
 }
