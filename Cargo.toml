@@ -1,6 +1,6 @@
 [package]
 name = "lightstreamer-client"
-version = "0.1.8"
+version = "0.1.9"
 edition = "2021"
 authors = ["Daniel López Azaña <daniloaz@gmail.com>"]
 description = "A Rust client for Lightstreamer, designed to facilitate real-time communication with Lightstreamer servers."
@@ -11,6 +11,7 @@ documentation = "https://github.com/daniloaz/lightstreamer-client#readme"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+colored = "2"
 cookie = { version = "0", features = ["percent-encode"]}
 futures = "0"
 futures-util = "0"

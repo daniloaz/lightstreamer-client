@@ -133,7 +133,10 @@ impl ItemUpdate {
                 .iter()
                 .find(|(name, _)| self.get_field_position(name) == pos)
                 .and_then(|(_, value)| value.as_deref()),
-            Err(_) => self.fields.get(field_name_or_pos).and_then(|v| v.as_deref()),
+            Err(_) => self
+                .fields
+                .get(field_name_or_pos)
+                .and_then(|v| v.as_deref()),
         }
     }
 
@@ -162,10 +165,7 @@ impl ItemUpdate {
     /// # Returns
     /// A JSON Patch structure representing the difference between the new value and the previous one,
     /// or None if the difference in JSON Patch format is not available for any reason.
-    pub fn get_value_as_json_patch_if_available(
-        &self,
-        _field_name_or_pos: &str,
-    ) -> Option<String> {
+    pub fn get_value_as_json_patch_if_available(&self, _field_name_or_pos: &str) -> Option<String> {
         // Implementation pending
         None
     }
@@ -232,7 +232,7 @@ impl ItemUpdate {
     ///
     /// # Returns
     /// The 1-based position of the field within the field list or field schema.
-    fn get_field_position(&self, field_name: &str) -> usize {
+    fn get_field_position(&self, _field_name: &str) -> usize {
         // Implementation pending
         // This method should return the 1-based position of the field based on the field list or field schema
         // If the field is not found, it should raise an IllegalArgumentException

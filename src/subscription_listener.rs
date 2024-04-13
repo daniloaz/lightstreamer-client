@@ -57,7 +57,9 @@ pub trait SubscriptionListener: Send {
     /// - `Subscription::set_command_second_level_field_schema()`
     fn on_command_second_level_item_lost_updates(&mut self, _lost_updates: u32, _key: &str) {
         // Default implementation does nothing.
-        unimplemented!("Implement on_command_second_level_item_lost_updates method for SubscriptionListener.");
+        unimplemented!(
+            "Implement on_command_second_level_item_lost_updates method for SubscriptionListener."
+        );
     }
 
     /// Event handler that is called when the Server notifies an error on a second-level subscription.
@@ -89,9 +91,16 @@ pub trait SubscriptionListener: Send {
     /// - `ConnectionDetails::set_adapter_set()`
     /// - `Subscription::set_command_second_level_fields()`
     /// - `Subscription::set_command_second_level_field_schema()`
-    fn on_command_second_level_subscription_error(&mut self, _code: i32, _message: Option<&str>, _key: &str) {
+    fn on_command_second_level_subscription_error(
+        &mut self,
+        _code: i32,
+        _message: Option<&str>,
+        _key: &str,
+    ) {
         // Default implementation does nothing.
-        unimplemented!("Implement on_command_second_level_subscription_error method for SubscriptionListener.");
+        unimplemented!(
+            "Implement on_command_second_level_subscription_error method for SubscriptionListener."
+        );
     }
 
     /// Event handler that is called by Lightstreamer to notify that all snapshot events for an item
@@ -143,7 +152,12 @@ pub trait SubscriptionListener: Send {
     /// # See also
     ///
     /// - `Subscription::set_requested_max_frequency()`
-    fn on_item_lost_updates(&mut self, _item_name: Option<&str>, _item_pos: usize, _lost_updates: u32) {
+    fn on_item_lost_updates(
+        &mut self,
+        _item_name: Option<&str>,
+        _item_pos: usize,
+        _lost_updates: u32,
+    ) {
         // Default implementation does nothing.
         unimplemented!("Implement on_item_lost_updates method for SubscriptionListener.");
     }

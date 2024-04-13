@@ -1,11 +1,11 @@
 pub mod client_listener;
 pub mod client_message_listener;
-pub mod error;
-pub mod item_update;
-pub mod subscription_listener;
 pub mod connection_details;
 pub mod connection_options;
+pub mod error;
+pub mod item_update;
 pub mod ls_client;
 pub mod proxy;
 pub mod subscription;
+pub mod subscription_listener;
 pub mod util;

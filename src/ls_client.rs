@@ -315,7 +315,8 @@ impl LightstreamerClient {
         let mut request_id: usize = 0;
         let mut _session_id: Option<String> = None;
         let mut subscription_id: usize = 0;
-        let mut subscription_item_updates: HashMap<usize, HashMap<usize, ItemUpdate>> = HashMap::new();
+        let mut subscription_item_updates: HashMap<usize, HashMap<usize, ItemUpdate>> =
+            HashMap::new();
         loop {
             tokio::select! {
                 message = read_stream.next() => {
@@ -488,7 +489,7 @@ impl LightstreamerClient {
                                                                     // is always a snapshot.
                                                                     if let Some(item_updates) = subscription_item_updates.get(&(subscription_index)) {
                                                                         if let Some(_) = item_updates.get(&(item_index)) {
-                                                                            // Item update already exists in item_updates, so it's not a snapshot. 
+                                                                            // Item update already exists in item_updates, so it's not a snapshot.
                                                                             false
                                                                         } else {
                                                                             // Item update doesn't exist in item_updates, so the first update is always a snapshot.

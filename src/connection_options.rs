@@ -30,7 +30,7 @@ pub struct ConnectionOptions {
     slowing_enabled: bool,
     stalled_timeout: u64,
     send_sync: bool,
-    reduce_head: bool,
+    _reduce_head: bool,
     supported_diffs: Option<String>,
     polling: bool,
     ttl_millis: Option<u64>,
@@ -59,7 +59,7 @@ impl ConnectionOptions {
             stalled_timeout: 2000,
             server_instance_address_ignored: false,
             send_sync: true,
-            reduce_head: false,
+            _reduce_head: false,
             supported_diffs: None,
             polling: false,
             ttl_millis: None,
@@ -334,7 +334,10 @@ impl ConnectionOptions {
     /// # Raises
     ///
     /// * `IllegalArgumentException`: if a negative or zero value is configured
-    pub fn set_content_length(&mut self, content_length: u64) -> Result<(), IllegalArgumentException> {
+    pub fn set_content_length(
+        &mut self,
+        content_length: u64,
+    ) -> Result<(), IllegalArgumentException> {
         if content_length == 0 {
             return Err(IllegalArgumentException::new(
                 "Content length cannot be zero",
@@ -369,7 +372,10 @@ impl ConnectionOptions {
     /// # Raises
     ///
     /// * `IllegalArgumentException`: if a negative or zero value is configured
-    pub fn set_first_retry_max_delay(&mut self, first_retry_max_delay: u64) -> Result<(), IllegalArgumentException> {
+    pub fn set_first_retry_max_delay(
+        &mut self,
+        first_retry_max_delay: u64,
+    ) -> Result<(), IllegalArgumentException> {
         if first_retry_max_delay == 0 {
             return Err(IllegalArgumentException::new(
                 "First retry max delay cannot be zero",
@@ -487,7 +493,8 @@ impl ConnectionOptions {
         &mut self,
         http_extra_headers_on_session_creation_only: bool,
     ) {
-        self.http_extra_headers_on_session_creation_only = http_extra_headers_on_session_creation_only;
+        self.http_extra_headers_on_session_creation_only =
+            http_extra_headers_on_session_creation_only;
     }
 
     /// Setter method that sets the maximum time the Server is allowed to wait for any data to
@@ -521,9 +528,7 @@ impl ConnectionOptions {
     /// * `IllegalArgumentException`: if a negative value is configured
     pub fn set_idle_timeout(&mut self, idle_timeout: u64) -> Result<(), IllegalArgumentException> {
         if idle_timeout == 0 {
-            return Err(IllegalArgumentException::new(
-                "Idle timeout cannot be zero",
-            ));
+            return Err(IllegalArgumentException::new("Idle timeout cannot be zero"));
         }
 
         self.idle_timeout = idle_timeout;
@@ -558,13 +563,17 @@ impl ConnectionOptions {
     /// See also `setStalledTimeout()`
     ///
     /// See also `setReconnectTimeout()`
-    pub fn set_keepalive_interval(&mut self, keepalive_interval: u64) -> Result<(), IllegalArgumentException> {
+    pub fn set_keepalive_interval(
+        &mut self,
+        keepalive_interval: u64,
+    ) -> Result<(), IllegalArgumentException> {
         if keepalive_interval == 0 {
             self.keepalive_interval = keepalive_interval;
             return Ok(());
         }
 
-        if keepalive_interval < self.stalled_timeout || keepalive_interval < self.reconnect_timeout {
+        if keepalive_interval < self.stalled_timeout || keepalive_interval < self.reconnect_timeout
+        {
             return Err(IllegalArgumentException::new(
                 "Keepalive interval should be greater than or equal to stalled timeout and reconnect timeout",
             ));
@@ -616,7 +625,10 @@ impl ConnectionOptions {
     /// # Raises
     ///
     /// * `IllegalArgumentException`: if a negative value is configured
-    pub fn set_polling_interval(&mut self, polling_interval: u64) -> Result<(), IllegalArgumentException> {
+    pub fn set_polling_interval(
+        &mut self,
+        polling_interval: u64,
+    ) -> Result<(), IllegalArgumentException> {
         if polling_interval == 0 {
             self.polling_interval = polling_interval;
             return Ok(());
@@ -675,7 +687,10 @@ impl ConnectionOptions {
     /// See also `setStalledTimeout()`
     ///
     /// See also `setKeepaliveInterval()`
-    pub fn set_reconnect_timeout(&mut self, reconnect_timeout: u64) -> Result<(), IllegalArgumentException> {
+    pub fn set_reconnect_timeout(
+        &mut self,
+        reconnect_timeout: u64,
+    ) -> Result<(), IllegalArgumentException> {
         if reconnect_timeout == 0 {
             return Err(IllegalArgumentException::new(
                 "Reconnect timeout cannot be zero",
@@ -719,7 +734,10 @@ impl ConnectionOptions {
     ///   values) is passed.
     ///
     /// See also `get_real_max_bandwidth()`
-    pub fn set_requested_max_bandwidth(&mut self, max_bandwidth: Option<f64>) -> Result<(), IllegalArgumentException> {
+    pub fn set_requested_max_bandwidth(
+        &mut self,
+        max_bandwidth: Option<f64>,
+    ) -> Result<(), IllegalArgumentException> {
         if let Some(bandwidth) = max_bandwidth {
             if bandwidth <= 0.0 {
                 return Err(IllegalArgumentException::new(
@@ -781,9 +799,7 @@ impl ConnectionOptions {
     /// See also `setFirstRetryMaxDelay()`
     pub fn set_retry_delay(&mut self, retry_delay: u64) -> Result<(), IllegalArgumentException> {
         if retry_delay == 0 {
-            return Err(IllegalArgumentException::new(
-                "Retry delay cannot be zero",
-            ));
+            return Err(IllegalArgumentException::new("Retry delay cannot be zero"));
         }
 
         self.retry_delay = retry_delay;
@@ -836,7 +852,10 @@ impl ConnectionOptions {
     /// # Raises
     ///
     /// * `IllegalArgumentException`: if a negative value is configured
-    pub fn set_reverse_heartbeat_interval(&mut self, reverse_heartbeat_interval: u64) -> Result<(), IllegalArgumentException> {
+    pub fn set_reverse_heartbeat_interval(
+        &mut self,
+        reverse_heartbeat_interval: u64,
+    ) -> Result<(), IllegalArgumentException> {
         if reverse_heartbeat_interval == 0 {
             self.reverse_heartbeat_interval = reverse_heartbeat_interval;
             return Ok(());
@@ -919,7 +938,10 @@ impl ConnectionOptions {
     /// # Raises
     ///
     /// * `IllegalArgumentException`: if a negative value is passed.
-    pub fn set_session_recovery_timeout(&mut self, session_recovery_timeout: u64) -> Result<(), IllegalArgumentException> {
+    pub fn set_session_recovery_timeout(
+        &mut self,
+        session_recovery_timeout: u64,
+    ) -> Result<(), IllegalArgumentException> {
         if session_recovery_timeout == 0 {
             self.session_recovery_timeout = session_recovery_timeout;
             return Ok(());
@@ -987,7 +1009,10 @@ impl ConnectionOptions {
     /// See also `setReconnectTimeout()`
     ///
     /// See also `setKeepaliveInterval()`
-    pub fn set_stalled_timeout(&mut self, stalled_timeout: u64) -> Result<(), IllegalArgumentException> {
+    pub fn set_stalled_timeout(
+        &mut self,
+        stalled_timeout: u64,
+    ) -> Result<(), IllegalArgumentException> {
         if stalled_timeout == 0 {
             return Err(IllegalArgumentException::new(
                 "Stalled timeout cannot be zero",
@@ -1101,7 +1126,10 @@ impl Debug for ConnectionOptions {
             .field("first_retry_max_delay", &self.first_retry_max_delay)
             .field("forced_transport", &self.forced_transport)
             .field("http_extra_headers", &self.http_extra_headers)
-            .field("http_extra_headers_on_session_creation_only", &self.http_extra_headers_on_session_creation_only)
+            .field(
+                "http_extra_headers_on_session_creation_only",
+                &self.http_extra_headers_on_session_creation_only,
+            )
             .field("idle_timeout", &self.idle_timeout)
             .field("keepalive_interval", &self.keepalive_interval)
             .field("polling_interval", &self.polling_interval)
@@ -1110,8 +1138,14 @@ impl Debug for ConnectionOptions {
             .field("reconnect_timeout", &self.reconnect_timeout)
             .field("requested_max_bandwidth", &self.requested_max_bandwidth)
             .field("retry_delay", &self.retry_delay)
-            .field("reverse_heartbeat_interval", &self.reverse_heartbeat_interval)
-            .field("server_instance_address_ignored", &self.server_instance_address_ignored)
+            .field(
+                "reverse_heartbeat_interval",
+                &self.reverse_heartbeat_interval,
+            )
+            .field(
+                "server_instance_address_ignored",
+                &self.server_instance_address_ignored,
+            )
             .field("session_recovery_timeout", &self.session_recovery_timeout)
             .field("slowing_enabled", &self.slowing_enabled)
             .field("stalled_timeout", &self.stalled_timeout)
@@ -1133,7 +1167,7 @@ impl Default for ConnectionOptions {
             proxy: None,
             real_max_bandwidth: None,
             reconnect_timeout: 3000,
-            reduce_head: false,
+            _reduce_head: false,
             requested_max_bandwidth: None,
             retry_delay: 4000,
             reverse_heartbeat_interval: 0,

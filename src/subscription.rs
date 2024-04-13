@@ -39,18 +39,6 @@ pub enum SubscriptionMode {
     Command,
 }
 
-impl SubscriptionMode {
-    fn from_str(s: &str) -> Result<SubscriptionMode, String> {
-        match s.to_lowercase().as_str() {
-            "merge" => Ok(SubscriptionMode::Merge),
-            "distinct" => Ok(SubscriptionMode::Distinct),
-            "raw" => Ok(SubscriptionMode::Raw),
-            "command" => Ok(SubscriptionMode::Command),
-            _ => Err(format!("Invalid subscription mode: {}", s)),
-        }
-    }
-}
-
 impl ToString for SubscriptionMode {
     fn to_string(&self) -> String {
         match self {
@@ -171,15 +159,15 @@ impl Subscription {
     /// # See also
     /// `addListener()`
     pub fn remove_listener<T>(&mut self, listener: &T)
-        where
-            T: SubscriptionListener,
-        {
-            self.listeners.retain(|l| {
-                let l_ref = l.as_ref() as &dyn SubscriptionListener;
-                let listener_ref = listener as &dyn SubscriptionListener;
-                !(std::ptr::addr_of!(*l_ref) == std::ptr::addr_of!(*listener_ref))
-            });
-        }
+    where
+        T: SubscriptionListener,
+    {
+        self.listeners.retain(|l| {
+            let l_ref = l.as_ref() as &dyn SubscriptionListener;
+            let listener_ref = listener as &dyn SubscriptionListener;
+            !(std::ptr::addr_of!(*l_ref) == std::ptr::addr_of!(*listener_ref))
+        });
+    }
 
     /// Returns a list containing the SubscriptionListener instances that were added to this client.
     ///
@@ -404,7 +392,10 @@ impl Subscription {
     ///
     /// # See also
     /// `Subscription.setCommandSecondLevelFieldSchema()`
-    pub fn set_command_second_level_data_adapter(&mut self, adapter: Option<String>) -> Result<(), String> {
+    pub fn set_command_second_level_data_adapter(
+        &mut self,
+        adapter: Option<String>,
+    ) -> Result<(), String> {
         if self.is_active {
             return Err("Subscription is active".to_string());
         }
@@ -457,7 +448,10 @@ impl Subscription {
     ///
     /// # See also
     /// `Subscription.setCommandSecondLevelFields()`
-    pub fn set_command_second_level_field_schema(&mut self, schema: Option<String>) -> Result<(), String> {
+    pub fn set_command_second_level_field_schema(
+        &mut self,
+        schema: Option<String>,
+    ) -> Result<(), String> {
         if self.is_active {
             return Err("Subscription is active".to_string());
         }
@@ -511,7 +505,10 @@ impl Subscription {
     ///
     /// # See also
     /// `Subscription.setCommandSecondLevelFieldSchema()`
-    pub fn set_command_second_level_fields(&mut self, fields: Option<Vec<String>>) -> Result<(), String> {
+    pub fn set_command_second_level_fields(
+        &mut self,
+        fields: Option<Vec<String>>,
+    ) -> Result<(), String> {
         if self.is_active {
             return Err("Subscription is active".to_string());
         }
@@ -763,7 +760,12 @@ impl Subscription {
     ///
     /// # Returns
     /// The current value for the specified field of the specified key within the specified item (possibly `None`), or `None` if the specified key has not been added yet (note that it might have been added and eventually deleted).
-    pub fn get_command_value(&self, item_pos: usize, key: &str, field_pos: usize) -> Option<&String> {
+    pub fn get_command_value(
+        &self,
+        item_pos: usize,
+        key: &str,
+        field_pos: usize,
+    ) -> Option<&String> {
         let key = format!("{}_{}", item_pos, key);
         self.command_values
             .get(&key)
@@ -842,7 +844,9 @@ impl Subscription {
             return None;
         }
         if let Some(ref schema) = self.field_schema {
-            return schema.split(',').position(|field| field.trim() == "command");
+            return schema
+                .split(',')
+                .position(|field| field.trim() == "command");
         }
         None
     }
@@ -896,9 +900,18 @@ impl Debug for Subscription {
             .field("field_schema", &self.field_schema)
             .field("fields", &self.fields)
             .field("data_adapter", &self.data_adapter)
-            .field("command_second_level_data_adapter", &self.command_second_level_data_adapter)
-            .field("command_second_level_field_schema", &self.command_second_level_field_schema)
-            .field("command_second_level_fields", &self.command_second_level_fields)
+            .field(
+                "command_second_level_data_adapter",
+                &self.command_second_level_data_adapter,
+            )
+            .field(
+                "command_second_level_field_schema",
+                &self.command_second_level_field_schema,
+            )
+            .field(
+                "command_second_level_fields",
+                &self.command_second_level_fields,
+            )
             .field("requested_buffer_size", &self.requested_buffer_size)
             .field("requested_max_frequency", &self.requested_max_frequency)
             .field("requested_snapshot", &self.requested_snapshot)
