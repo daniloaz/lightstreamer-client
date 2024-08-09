@@ -355,8 +355,8 @@ impl LightstreamerClient {
                                     //
                                     "conok" => {
                                         if let Some(session_id) = submessage_fields.get(1).as_deref() {
-                                            self.make_log( Level::INFO, &format!("Session creation confirmed by server: {}", clean_text) );
-                                            self.make_log( Level::INFO, &format!("Session created with ID: {:?}", session_id) );
+                                            self.make_log( Level::DEBUG, &format!("Session creation confirmed by server: {}", clean_text) );
+                                            self.make_log( Level::DEBUG, &format!("Session created with ID: {:?}", session_id) );
                                             //
                                             // Subscribe to the desired items.
                                             //
@@ -443,10 +443,10 @@ impl LightstreamerClient {
                                         // Don't do anything with these notifications for now.
                                     },
                                     "probe" => {
-                                        self.make_log( Level::INFO, &format!("Received probe message from server: {}", clean_text ) );
+                                        self.make_log( Level::DEBUG, &format!("Received probe message from server: {}", clean_text ) );
                                     },
                                     "reqok" => {
-                                        self.make_log( Level::INFO, &format!("Received reqok message from server: '{}'", clean_text ) );
+                                        self.make_log( Level::DEBUG, &format!("Received reqok message from server: '{}'", clean_text ) );
                                     },
                                     //
                                     // Subscription confirmation from server.
@@ -714,7 +714,7 @@ impl LightstreamerClient {
                                         write_stream
                                             .send(Message::Text(format!("create_session\r\n{}\n", encoded_params)))
                                             .await?;
-                                        self.make_log( Level::INFO, &format!("Sent create session request: '{}'", encoded_params) );
+                                        self.make_log( Level::DEBUG, &format!("Sent create session request: '{}'", encoded_params) );
                                     },
                                     unexpected_message => {
                                         return Err(Box::new(std::io::Error::new(
@@ -744,7 +744,7 @@ impl LightstreamerClient {
                             )));
                         },
                         None => {
-                            self.make_log( Level::INFO, "No more messages from server" );
+                            self.make_log( Level::DEBUG, "No more messages from server" );
                             break;
                         },
                     }

@@ -7,7 +7,6 @@ pub struct IllegalArgumentException(String);
 
 impl IllegalArgumentException {
     pub fn new(msg: &str) -> IllegalArgumentException {
-        error!(msg);
         IllegalArgumentException(msg.to_string())
     }
 }
@@ -31,7 +30,6 @@ pub struct IllegalStateException {
 
 impl IllegalStateException {
     pub fn new(msg: &str) -> IllegalStateException {
-        error!(msg);
         IllegalStateException {
             details: msg.to_string(),
         }
