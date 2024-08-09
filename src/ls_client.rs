@@ -21,6 +21,7 @@ use tokio_tungstenite::{
         Message,
     },
 };
+use tracing::{debug, error, info, instrument, trace, warn, Level};
 use url::Url;
 
 /// Represents the current status of the `LightstreamerClient`.
@@ -42,6 +43,11 @@ pub enum ConnectionType {
 pub enum DisconnectionType {
     WillRetry,
     TryingRecovery,
+}
+
+pub enum LogType {
+    TracingLogs,
+    StdLogs,
 }
 
 /// Facade class for the management of the communication to Lightstreamer Server. Used to provide
@@ -102,6 +108,8 @@ pub struct LightstreamerClient {
     subscriptions: Vec<Subscription>,
     /// The current status of the client.
     status: ClientStatus,
+    /// Logging Type to be used
+    logging: LogType,
 }
 
 impl Debug for LightstreamerClient {
@@ -203,6 +211,7 @@ impl LightstreamerClient {
     /// See also `ClientListener.onStatusChange()`
     ///
     /// See also `ConnectionDetails.setServerAddress()`
+    #[instrument]
     pub async fn connect(&mut self, shutdown_signal: Arc<Notify>) -> Result<(), Box<dyn Error>> {
         // Check if the server address is configured.
         if self.server_address.is_none() {
@@ -281,12 +290,15 @@ impl LightstreamerClient {
         let ws_stream = match connect_async(request).await {
             Ok((ws_stream, response)) => {
                 if let Some(server_header) = response.headers().get("server") {
-                    println!(
-                        "Connected to Lightstreamer server: {}",
-                        server_header.to_str().unwrap_or("")
+                    self.make_log(
+                        Level::INFO,
+                        &format!(
+                            "Connected to Lightstreamer server: {}",
+                            server_header.to_str().unwrap_or("")
+                        ),
                     );
                 } else {
-                    println!("Connected to Lightstreamer server");
+                    self.make_log(Level::INFO, "Connected to Lightstreamer server");
                 }
                 ws_stream
             }
@@ -335,7 +347,7 @@ impl LightstreamerClient {
                                     // Errors from server.
                                     //
                                     "conerr" | "reqerr" => {
-                                        println!("Received connection error from server: {}", clean_text);
+                                        self.make_log( Level::ERROR, &format!("Received connection error from Lightstreamer server: {}", clean_text) );
                                         break;
                                     },
                                     //
@@ -343,8 +355,8 @@ impl LightstreamerClient {
                                     //
                                     "conok" => {
                                         if let Some(session_id) = submessage_fields.get(1).as_deref() {
-                                            println!("Session creation confirmed by server: '{}'", clean_text);
-                                            println!("Session created with ID: {:?}", session_id);
+                                            self.make_log( Level::INFO, &format!("Session creation confirmed by server: {}", clean_text) );
+                                            self.make_log( Level::INFO, &format!("Session created with ID: {:?}", session_id) );
                                             //
                                             // Subscribe to the desired items.
                                             //
@@ -414,7 +426,7 @@ impl LightstreamerClient {
                                                 write_stream
                                                     .send(Message::Text(format!("control\r\n{}", encoded_params)))
                                                     .await?;
-                                                println!("Sent subscription request: '{}'", encoded_params);
+                                                info!("Sent subscription request: '{}'", encoded_params);
                                             }
                                         } else {
                                             return Err(Box::new(std::io::Error::new(
@@ -427,26 +439,25 @@ impl LightstreamerClient {
                                     // Notifications from server.
                                     //
                                     "conf" | "cons" | "clientip" | "servname" | "prog" | "sync" => {
-                                        println!("Received notification from server: {}", clean_text);
+                                        self.make_log( Level::INFO, &format!("Received notification from server: {}", clean_text) );
                                         // Don't do anything with these notifications for now.
                                     },
                                     "probe" => {
-                                        println!("Received probe message from server: '{}'", clean_text);
+                                        self.make_log( Level::INFO, &format!("Received probe message from server: {}", clean_text ) );
                                     },
                                     "reqok" => {
-                                        println!("Received reqok message from server: '{}'", clean_text);
+                                        self.make_log( Level::INFO, &format!("Received reqok message from server: '{}'", clean_text ) );
                                     },
                                     //
                                     // Subscription confirmation from server.
                                     //
                                     "subok" => {
-                                        println!("Subscription confirmed by server: '{}'", clean_text);
+                                        self.make_log( Level::INFO, &format!("Subscription confirmed by server: '{}'", clean_text) );
                                     },
                                     //
                                     // Data updates from server.
                                     //
                                     "u" => {
-                                        //println!("Received data update from server: '{}'", clean_text);
                                         // Parse arguments from the received message.
                                         let arguments = clean_text.split(",").collect::<Vec<&str>>();
                                         //
@@ -456,8 +467,9 @@ impl LightstreamerClient {
                                         let subscription = match self.get_subscriptions().get(subscription_index-1) {
                                             Some(subscription) => subscription,
                                             None => {
-                                                println!("Subscription not found for index: {}", subscription_index);
+                                                self.make_log( Level::WARN, &format!("Subscription not found for index: {}", subscription_index) );
                                                 continue;
+
                                             }
                                         };
                                         //
@@ -467,7 +479,7 @@ impl LightstreamerClient {
                                         let item = match subscription.get_items() {
                                             Some(items) => items.get(item_index-1),
                                             None => {
-                                                println!("No items found in subscription: {:?}", subscription);
+                                                self.make_log( Level::WARN, &format!("No items found in subscription: {:?}", subscription) );
                                                 continue;
                                             }
                                         };
@@ -673,7 +685,7 @@ impl LightstreamerClient {
                                     // Connection confirmation from server.
                                     //
                                     "wsok" => {
-                                        println!("Connection confirmed by server: '{}'", clean_text);
+                                        self.make_log( Level::INFO, &format!("Connection confirmed by server: '{}'", clean_text) );
                                         //
                                         // Request session creation.
                                         //
@@ -702,7 +714,7 @@ impl LightstreamerClient {
                                         write_stream
                                             .send(Message::Text(format!("create_session\r\n{}\n", encoded_params)))
                                             .await?;
-                                        println!("Sent create session request: '{}'", encoded_params);
+                                        self.make_log( Level::INFO, &format!("Sent create session request: '{}'", encoded_params) );
                                     },
                                     unexpected_message => {
                                         return Err(Box::new(std::io::Error::new(
@@ -732,13 +744,13 @@ impl LightstreamerClient {
                             )));
                         },
                         None => {
-                            println!("No more messages from server");
+                            self.make_log( Level::INFO, "No more messages from server" );
                             break;
                         },
                     }
                 },
                 _ = shutdown_signal.notified() => {
-                    println!("Received shutdown signal");
+                    self.make_log( Level::INFO, &format!("Received shutdown signal") );
                     break;
                 },
             }
@@ -763,9 +775,10 @@ impl LightstreamerClient {
     /// "DISCONNECTED", then nothing will be done.
     ///
     /// See also `connect()`
+    #[instrument]
     pub async fn disconnect(&mut self) {
         // Implementation for disconnect
-        println!("Disconnecting from Lightstreamer server");
+        self.make_log( Level::INFO, "Disconnecting from Lightstreamer server" );
     }
 
     /// Static inquiry method that can be used to share cookies between connections to the Server
@@ -895,6 +908,7 @@ impl LightstreamerClient {
             listeners: Vec::new(),
             subscriptions: Vec::new(),
             status: ClientStatus::Disconnected(DisconnectionType::WillRetry),
+            logging: LogType::StdLogs,
         })
     }
 
@@ -1141,6 +1155,53 @@ impl LightstreamerClient {
         }
     }
     */
+
+    /// Method setting enum for the logging of this instance.
+    ///
+    /// Default logging type is StdLogs, corresponding to `stdout`
+    ///
+    /// `LightstreamerClient` has methods for logging that are compatible with the `Tracing` crate.
+    /// Enabling logging for the `Tracing` crate requires implementation of a tracing subscriber
+    /// and its configuration and formatting.
+    ///
+    /// # Parameters
+    ///
+    /// * `logging`: An enum declaring the logging type of this `LightstreamerClient` instance.
+    pub fn set_logging_type(&mut self, logging: LogType) {
+        self.logging = logging;
+    }
+
+    /// Method for logging messages
+    ///
+    /// Match case wraps log types. `loglevel` param ignored in StdLogs case, all output to stdout.
+    ///
+    /// # Parameters
+    ///
+    /// * `loglevel` Enum determining use of stdout or Tracing subscriber.
+    pub fn make_log(&mut self, loglevel: Level, log: &str) {
+        match self.logging {
+            LogType::StdLogs => {
+                println!("{}", log);
+            }
+            LogType::TracingLogs => match loglevel {
+                Level::INFO => {
+                    info!(log);
+                }
+                Level::WARN => {
+                    warn!(log);
+                }
+                Level::ERROR => {
+                    error!(log);
+                }
+                Level::TRACE => {
+                    trace!(log);
+                }
+                Level::DEBUG => {
+                    debug!(log);
+                }
+            },
+        }
+    }
 }
 
 /// The transport type to be used by the client.
