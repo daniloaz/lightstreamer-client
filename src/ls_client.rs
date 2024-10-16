@@ -212,7 +212,7 @@ impl LightstreamerClient {
     ///
     /// See also `ConnectionDetails.setServerAddress()`
     #[instrument]
-    pub async fn connect(&mut self, shutdown_signal: Arc<Notify>) -> Result<(), Box<dyn Error>> {
+    pub async fn connect(&mut self, shutdown_signal: Arc<Notify>) -> Result<(), Box<dyn Error + Send + Sync>> {
         // Check if the server address is configured.
         if self.server_address.is_none() {
             return Err(Box::new(IllegalStateException::new(
