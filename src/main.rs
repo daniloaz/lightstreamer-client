@@ -63,7 +63,7 @@ impl SubscriptionListener for MySubscriptionListener {
         ];
         let mut output = String::new();
         for field in fields {
-            let value = update.get_value(field).unwrap_or(&not_available).clone();
+            let value = update.get_value(field).unwrap_or(&not_available);
             let value_str = if update.changed_fields.contains_key(field) {
                 value.yellow().to_string()
             } else {
