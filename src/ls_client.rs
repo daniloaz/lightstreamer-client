@@ -494,7 +494,7 @@ impl LightstreamerClient {
                                     //
                                     // Notifications from server.
                                     //
-                                    "conf" | "cons" | "clientip" | "servname" | "prog" | "sync" => {
+                                    "conf" | "cons" | "clientip" | "servname" | "prog" | "sync" | "eos" => {
                                         self.make_log( Level::INFO, &format!("Received notification from server: {}", clean_text) );
                                         // Don't do anything with these notifications for now.
                                     },
