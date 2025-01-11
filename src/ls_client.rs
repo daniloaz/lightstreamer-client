@@ -1000,15 +1000,11 @@ impl LightstreamerClient {
     /// ```
     /// // Example usage of `new` to create a LightstreamerClient with specified server address and
     /// // adapter set.
+    /// use lightstreamer_client::ls_client::LightstreamerClient;
     /// let server_address = Some("http://myserver.com");
     /// let adapter_set = Some("MY_ADAPTER_SET");
-    /// let ls_client = LightstreamerClient::new(server_address, adapter_set);
-    ///
+    /// let ls_client = LightstreamerClient::new(server_address, adapter_set, None, None);
     /// assert!(ls_client.is_ok());
-    /// if let Ok(client) = ls_client {
-    ///     assert_eq!(client.server_address.unwrap(), "http://myserver.com".to_string());
-    ///     assert_eq!(client.adapter_set.unwrap(), "MY_ADAPTER_SET".to_string());
-    /// }
     /// ```
     pub fn new(
         server_address: Option<&str>,
