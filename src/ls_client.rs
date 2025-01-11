@@ -521,7 +521,7 @@ impl LightstreamerClient {
                                     //
                                     "u" => {
                                         // Parse arguments from the received message.
-                                        let arguments = clean_text.split(",").collect::<Vec<&str>>();
+                                        let arguments = parse_arguments(&clean_text);
                                         //
                                         // Extract the subscription from the first argument.
                                         //
