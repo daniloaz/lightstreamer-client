@@ -13,7 +13,10 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::{self, Debug, Formatter};
 use std::sync::Arc;
-use tokio::sync::Notify;
+use tokio::sync::{
+    mpsc::{self, Receiver, Sender},
+    Notify,
+};
 use tokio_tungstenite::{
     connect_async,
     tungstenite::{
@@ -48,6 +51,11 @@ pub enum DisconnectionType {
 pub enum LogType {
     TracingLogs,
     StdLogs,
+}
+
+pub struct SubscriptionRequest {
+    subscription: Option<Subscription>,
+    subscription_id: Option<usize>,
 }
 
 /// Facade class for the management of the communication to Lightstreamer Server. Used to provide
@@ -110,6 +118,10 @@ pub struct LightstreamerClient {
     status: ClientStatus,
     /// Logging Type to be used
     logging: LogType,
+    /// The sender that can be used to subscribe/unsubscribe
+    pub subscription_sender: Sender<SubscriptionRequest>,
+    /// The receiver used for subscribe/unsubsribe
+    subscription_receiver: Receiver<SubscriptionRequest>,
 }
 
 impl Debug for LightstreamerClient {
@@ -180,6 +192,94 @@ impl LightstreamerClient {
         self.listeners.push(listener);
     }
 
+    /// Packs s string with the necessary parameters for a subscription request.
+    /// 
+    /// # Parameters
+    /// 
+    /// * `subscription`: The subscription for which to get the parameters.
+    /// * `request_id`: The request ID to use in the parameters.
+    /// 
+    fn get_subscription_params(
+        subscription: &Subscription,
+        request_id: usize,
+    ) -> Result<String, Box<dyn Error + Send + Sync>> {
+        let ls_req_id = request_id.to_string();
+        let ls_sub_id = subscription.id.to_string();
+        let ls_mode = subscription.get_mode().to_string();
+        let ls_group = match subscription.get_item_group() {
+            Some(item_group) => item_group.to_string(),
+            None => match subscription.get_items() {
+                Some(items) => items.join(" "),
+                None => {
+                    return Err(Box::new(std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        "No item group or items found in subscription.",
+                    )));
+                }
+            },
+        };
+        let ls_schema = match subscription.get_field_schema() {
+            Some(field_schema) => field_schema.to_string(),
+            None => match subscription.get_fields() {
+                Some(fields) => fields.join(" "),
+                None => {
+                    return Err(Box::new(std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        "No field schema or fields found in subscription.",
+                    )));
+                }
+            },
+        };
+        let ls_data_adapter = match subscription.get_data_adapter() {
+            Some(data_adapter) => data_adapter.to_string(),
+            None => "".to_string(),
+        };
+        let ls_snapshot = subscription
+            .get_requested_snapshot()
+            .unwrap_or_default()
+            .to_string();
+        //
+        // Prepare the subscription request.
+        //
+        let mut params: Vec<(&str, &str)> = vec![
+            ("LS_data_adapter", &ls_data_adapter),
+            ("LS_reqId", &ls_req_id),
+            ("LS_op", "add"),
+            ("LS_subId", &ls_sub_id),
+            ("LS_mode", &ls_mode),
+            ("LS_group", &ls_group),
+            ("LS_schema", &ls_schema),
+            ("LS_ack", "false"),
+        ];
+        // Remove the data adapter parameter if not specified.
+        if ls_data_adapter == "" {
+            params.remove(0);
+        }
+        if ls_snapshot != "" {
+            params.push(("LS_snapshot", &ls_snapshot));
+        }
+
+        Ok(serde_urlencoded::to_string(&params)?)
+    }
+    
+    fn get_unsubscription_params(
+        subscription_id: usize,
+        request_id: usize,
+    ) -> Result<String, Box<dyn Error + Send + Sync>> {
+        let ls_req_id = request_id.to_string();
+        let ls_sub_id = subscription_id.to_string();
+        //
+        // Prepare the unsubscription request.
+        //
+        let params: Vec<(&str, &str)> = vec![
+            ("LS_reqId", &ls_req_id),
+            ("LS_op", "delete"),
+            ("LS_subId", &ls_sub_id),
+        ];
+
+        Ok(serde_urlencoded::to_string(&params)?)
+    }
+
     /// Operation method that requests to open a Session against the configured Lightstreamer Server.
     ///
     /// When `connect()` is called, unless a single transport was forced through `ConnectionOptions.setForcedTransport()`,
@@ -212,7 +312,7 @@ impl LightstreamerClient {
     ///
     /// See also `ConnectionDetails.setServerAddress()`
     #[instrument]
-    pub async fn connect(&mut self, shutdown_signal: Arc<Notify>) -> Result<(), Box<dyn Error>> {
+    pub async fn connect(&mut self, shutdown_signal: Arc<Notify>) -> Result<(), Box<dyn Error + Send + Sync>> {
         // Check if the server address is configured.
         if self.server_address.is_none() {
             return Err(Box::new(IllegalStateException::new(
@@ -324,6 +424,7 @@ impl LightstreamerClient {
         //
         // Start reading and processing messages from the server.
         //
+        let mut is_connected = false;
         let mut request_id: usize = 0;
         let mut _session_id: Option<String> = None;
         let mut subscription_id: usize = 0;
@@ -354,75 +455,30 @@ impl LightstreamerClient {
                                     // Session created successfully.
                                     //
                                     "conok" => {
+                                        is_connected = true;
                                         if let Some(session_id) = submessage_fields.get(1).as_deref() {
                                             self.make_log( Level::DEBUG, &format!("Session creation confirmed by server: {}", clean_text) );
                                             self.make_log( Level::DEBUG, &format!("Session created with ID: {:?}", session_id) );
                                             //
                                             // Subscribe to the desired items.
                                             //
-                                            while let Some(subscription) = self.subscriptions.get(subscription_id) {
+                                            while let Some(subscription) = self.subscriptions.get_mut(subscription_id) {
                                                 //
                                                 // Gather all the necessary subscription parameters.
                                                 //
-                                                request_id += 1;
-                                                let ls_req_id = request_id.to_string();
                                                 subscription_id += 1;
-                                                let ls_sub_id = subscription_id.to_string();
-                                                let ls_mode = subscription.get_mode().to_string();
-                                                let ls_group = match subscription.get_item_group() {
-                                                    Some(item_group) => item_group.to_string(),
-                                                    None => match subscription.get_items() {
-                                                        Some(items) => {
-                                                            items.join(" ")
-                                                        },
-                                                        None => {
-                                                            return Err(Box::new(std::io::Error::new(
-                                                                std::io::ErrorKind::InvalidData,
-                                                                "No item group or items found in subscription.",
-                                                            )));
-                                                        },
+                                                request_id += 1;
+                                                subscription.id = subscription_id;
+                                                subscription.id_sender.send(subscription_id)?;
+
+                                                let encoded_params = match Self::get_subscription_params(subscription, request_id)
+                                                {
+                                                    Ok(params) => params,
+                                                    Err(err) => {
+                                                        return Err(err);
                                                     },
                                                 };
-                                                let ls_schema = match subscription.get_field_schema() {
-                                                    Some(field_schema) => field_schema.to_string(),
-                                                    None => match subscription.get_fields() {
-                                                        Some(fields) => {
-                                                            fields.join(" ")
-                                                        },
-                                                        None => {
-                                                            return Err(Box::new(std::io::Error::new(
-                                                                std::io::ErrorKind::InvalidData,
-                                                                "No field schema or fields found in subscription.",
-                                                            )));
-                                                        },
-                                                    },
-                                                };
-                                                let ls_data_adapter = match subscription.get_data_adapter() {
-                                                    Some(data_adapter) => data_adapter.to_string(),
-                                                    None => "".to_string(),
-                                                };
-                                                let ls_snapshot = subscription.get_requested_snapshot().unwrap_or_default().to_string();
-                                                //
-                                                // Prepare the subscription request.
-                                                //
-                                                let mut params: Vec<(&str, &str)> = vec![
-                                                    ("LS_data_adapter", &ls_data_adapter),
-                                                    ("LS_reqId", &ls_req_id),
-                                                    ("LS_op", "add"),
-                                                    ("LS_subId", &ls_sub_id),
-                                                    ("LS_mode", &ls_mode),
-                                                    ("LS_group", &ls_group),
-                                                    ("LS_schema", &ls_schema),
-                                                    ("LS_ack", "false"),
-                                                ];
-                                                // Remove the data adapter parameter if not specified.
-                                                if ls_data_adapter == "" {
-                                                    params.remove(0);
-                                                }
-                                                if ls_snapshot != "" {
-                                                    params.push(("LS_snapshot", &ls_snapshot));
-                                                }
-                                                let encoded_params = serde_urlencoded::to_string(&params)?;
+
                                                 write_stream
                                                     .send(Message::Text(format!("control\r\n{}", encoded_params)))
                                                     .await?;
@@ -438,7 +494,7 @@ impl LightstreamerClient {
                                     //
                                     // Notifications from server.
                                     //
-                                    "conf" | "cons" | "clientip" | "servname" | "prog" | "sync" => {
+                                    "conf" | "cons" | "clientip" | "servname" | "prog" | "sync" | "eos" => {
                                         self.make_log( Level::INFO, &format!("Received notification from server: {}", clean_text) );
                                         // Don't do anything with these notifications for now.
                                     },
@@ -455,11 +511,17 @@ impl LightstreamerClient {
                                         self.make_log( Level::INFO, &format!("Subscription confirmed by server: '{}'", clean_text) );
                                     },
                                     //
+                                    // Usubscription confirmation from server.
+                                    //
+                                    "unsub" => {
+                                        self.make_log( Level::INFO, &format!("Unsubscription confirmed by server: '{}'", clean_text) );
+                                    },
+                                    //
                                     // Data updates from server.
                                     //
                                     "u" => {
                                         // Parse arguments from the received message.
-                                        let arguments = clean_text.split(",").collect::<Vec<&str>>();
+                                        let arguments = parse_arguments(&clean_text);
                                         //
                                         // Extract the subscription from the first argument.
                                         //
@@ -749,6 +811,64 @@ impl LightstreamerClient {
                         },
                     }
                 },
+                Some(subscription_request) = self.subscription_receiver.recv() => {
+                    println!("Received subscription/unsubscription request.");
+                    request_id += 1;
+                    // Process subscription requests.
+                    if subscription_request.subscription.is_some()
+                    {
+                        self.subscriptions.push(subscription_request.subscription.unwrap());
+
+                        // if we are not connected yet, we will subscribe later
+                        if !is_connected {
+                            continue;
+                        }
+
+                        subscription_id += 1;
+                        self.subscriptions.last_mut().unwrap().id = subscription_id;
+                        self.subscriptions.last().unwrap().id_sender.send(subscription_id)?;
+
+                        let encoded_params = match Self::get_subscription_params(self.subscriptions.last().unwrap(), request_id)
+                        {
+                            Ok(params) => params,
+                            Err(err) => {
+                                return Err(err);
+                            },
+                        };
+
+                        write_stream
+                            .send(Message::Text(format!("control\r\n{}", encoded_params)))
+                            .await?;
+                        
+                        self.make_log( Level::INFO, &format!("Sent subscription request: '{}'", encoded_params) );
+                    }
+                    // Process unsubscription requests.
+                    else if subscription_request.subscription_id.is_some()
+                    {
+                        let unsubscription_id = subscription_request.subscription_id.unwrap();
+                        let encoded_params = match Self::get_unsubscription_params(unsubscription_id, request_id)
+                        {
+                            Ok(params) => params,
+                            Err(err) => {
+                                return Err(err);
+                            },
+                        };
+                        
+                        write_stream
+                            .send(Message::Text(format!("control\r\n{}", encoded_params)))
+                            .await?;
+                        
+                        self.make_log( Level::INFO, &format!("Sent unsubscription request: '{}'", encoded_params) );
+                        
+                        self.subscriptions.retain(|s| s.id != unsubscription_id);
+                        
+                        if self.subscriptions.is_empty()
+                        {
+                            self.make_log( Level::INFO, &"No more subscriptions, disconnecting".to_string() );
+                            shutdown_signal.notify_one();
+                        }
+                    }
+                },
                 _ = shutdown_signal.notified() => {
                     self.make_log( Level::INFO, &format!("Received shutdown signal") );
                     break;
@@ -899,6 +1019,7 @@ impl LightstreamerClient {
         let connection_details =
             ConnectionDetails::new(server_address, adapter_set, username, password)?;
         let connection_options = ConnectionOptions::default();
+        let (subscription_sender, subscription_receiver) = mpsc::channel(100);
 
         Ok(LightstreamerClient {
             server_address: server_address.map(|s| s.to_string()),
@@ -909,6 +1030,8 @@ impl LightstreamerClient {
             subscriptions: Vec::new(),
             status: ClientStatus::Disconnected(DisconnectionType::WillRetry),
             logging: LogType::StdLogs,
+            subscription_sender,
+            subscription_receiver,
         })
     }
 
@@ -1099,8 +1222,7 @@ impl LightstreamerClient {
     }
     */
 
-    /// Operation method that adds a `Subscription` to the list of "active" Subscriptions. The `Subscription`
-    /// cannot already be in the "active" state.
+    /// Adds a subscription to the `LightstreamerClient` instance.
     ///
     /// Active subscriptions are subscribed to through the server as soon as possible (i.e. as soon
     /// as there is a session available). Active `Subscription` are automatically persisted across different
@@ -1119,13 +1241,42 @@ impl LightstreamerClient {
     ///
     /// # Parameters
     ///
+    /// * `subsrciption_sender`: A `Sender` object that sends a `SubscriptionRequest` to the `LightstreamerClient`
     /// * `subscription`: A `Subscription` object, carrying all the information needed to process real-time
     ///   values.
     ///
     /// See also `unsubscribe()`
-    pub fn subscribe(&mut self, subscription: Subscription) {
-        self.subscriptions.push(subscription);
-        // Implementation for subscribe
+    pub fn subscribe(subscription_sender: Sender<SubscriptionRequest>, subscription: Subscription) {
+        subscription_sender
+            .try_send(SubscriptionRequest {
+                subscription: Some(subscription),
+                subscription_id: None,
+            })
+            .unwrap()
+    }
+
+    /// If you want to be able to unsubscribe from a subscription, you need to keep track of the id
+    /// of the subscription. This blocking method allows you to wait for the id of the subscription
+    /// to be returned.
+    /// 
+    /// # Parameters
+    /// 
+    /// * `subscription_sender`: A `Sender` object that sends a `SubscriptionRequest` to the `LightstreamerClient`
+    /// * `subscription`: A `Subscription` object, carrying all the information needed to process real-time
+    /// 
+    pub async fn subscribe_get_id(
+        subscription_sender: Sender<SubscriptionRequest>,
+        subscription: Subscription,
+    ) -> Result<usize, Box<dyn Error + Send + Sync>> {
+        let mut id_receiver = subscription.id_receiver.clone();
+        LightstreamerClient::subscribe(subscription_sender.clone(), subscription);
+
+        match id_receiver.changed().await {
+            Ok(_) => Ok(*id_receiver.borrow()),
+            Err(_) => Err(Box::new(IllegalStateException::new(
+                "Failed to get subscription id",
+            ))),
+        }
     }
 
     /// Operation method that removes a `Subscription` that is currently in the "active" state.
@@ -1142,19 +1293,21 @@ impl LightstreamerClient {
     ///
     /// # Parameters
     ///
-    /// * `subscription`: An "active" `Subscription` object that was activated by this `LightstreamerClient`
+    /// * `subsrciption_sender`: A `Sender` object that sends a `SubscriptionRequest` to the `LightstreamerClient`
+    /// * `subscription_id`: The id of the subscription to be unsubscribed from.
     ///   instance.
-    pub fn unsubscribe(&mut self, _subscription: Subscription) {
-        unimplemented!("Implement mechanism to unsubscribe from LightstreamerClient.");
+    pub fn unsubscribe(
+        subscription_sender: Sender<SubscriptionRequest>,
+        subscription_id: usize,
+    ) {
+        println!("Unsubscribing subscription with id: {}", subscription_id);
+        subscription_sender
+            .try_send(SubscriptionRequest {
+                subscription: None,
+                subscription_id: Some(subscription_id),
+            })
+            .unwrap()
     }
-    /*
-    pub fn unsubscribe(&mut self, subscription: &Subscription) {
-        if let Some(index) = self.subscriptions.iter().position(|s| s == subscription) {
-            self.subscriptions.remove(index);
-            // Implementation for unsubscribe
-        }
-    }
-    */
 
     /// Method setting enum for the logging of this instance.
     ///

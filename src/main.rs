@@ -63,7 +63,7 @@ impl SubscriptionListener for MySubscriptionListener {
         ];
         let mut output = String::new();
         for field in fields {
-            let value = update.get_value(field).unwrap_or(&not_available).clone();
+            let value = update.get_value(field).unwrap_or(&not_available);
             let value_str = if update.changed_fields.contains_key(field) {
                 value.yellow().to_string()
             } else {
@@ -127,7 +127,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     //
     {
         let mut client = client.lock().await;
-        client.subscribe(my_subscription);
+        LightstreamerClient::subscribe(client.subscription_sender.clone(), my_subscription);
         client
             .connection_options
             .set_forced_transport(Some(Transport::WsStreaming));

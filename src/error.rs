@@ -1,6 +1,5 @@
 use std::error::Error;
 use std::fmt;
-use tracing::error;
 
 #[derive(Debug)]
 pub struct IllegalArgumentException(String);

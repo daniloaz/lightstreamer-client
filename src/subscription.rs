@@ -2,6 +2,7 @@ use crate::subscription_listener::SubscriptionListener;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::{self, Debug, Formatter};
+use tokio::sync::watch::{self, Sender, Receiver};
 
 /// Enum representing the snapshot delivery preferences to be requested to Lightstreamer Server for the items in the Subscription.
 #[derive(Debug, Default)]
@@ -89,6 +90,12 @@ pub struct Subscription {
     is_active: bool,
     /// A flag indicating whether the Subscription is currently subscribed to through the server or not.
     is_subscribed: bool,
+    /// Client assigned subscription ID.
+    pub(crate) id: usize,
+    /// A channel sender to send the subscription ID to the Lightstreamer client.
+    pub(crate) id_sender: Sender<usize>,
+    /// A channel receiver to receive the subscription ID from the Lightstreamer client.
+    pub(crate) id_receiver: Receiver<usize>,
 }
 
 impl Subscription {
@@ -109,7 +116,9 @@ impl Subscription {
         if items.is_none() || fields.is_none() {
             return Err("Items and fields must be provided".to_string().into());
         }
-
+        
+        let (id_sender, id_receiver) = watch::channel(0);
+        
         Ok(Subscription {
             mode,
             items,
@@ -129,6 +138,9 @@ impl Subscription {
             command_values: HashMap::new(),
             is_active: false,
             is_subscribed: false,
+            id: 0,
+            id_sender,
+            id_receiver
         })
     }
 
