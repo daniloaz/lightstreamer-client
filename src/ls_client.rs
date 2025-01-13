@@ -665,6 +665,26 @@ impl LightstreamerClient {
                                                         }
                                                     }
                                                 }
+                                                value if value.starts_with('{') => {
+                                                    // in this case it is a json payload that we will let the consumer handle. In this case, it is important
+                                                    // to preserve casing for parsing.
+                                                    let original_json = parse_arguments(&submessage).get(3).unwrap_or(&"").split('|').collect::<Vec<&str>>();
+                                                    let mut payload = "";
+                                                    for json in original_json.iter()
+                                                    {
+                                                        if json.is_empty() || json.to_string() == "#"
+                                                        {
+                                                            continue;
+                                                        }
+                                                        
+                                                        payload = json;
+                                                    }
+                                                    
+                                                    if let Some(field_name) = subscription_fields.and_then(|fields| fields.get(field_index)) {
+                                                        field_map.insert(field_name.to_string(), Some(payload.to_string()));
+                                                    }
+                                                    field_index += 1;
+                                                }
                                                 _ => {
                                                     let decoded_value = serde_urlencoded::from_str(value).unwrap_or_else(|_| value.to_string());
                                                     if let Some(field_name) = subscription_fields.and_then(|fields| fields.get(field_index)) {
