@@ -124,6 +124,16 @@ pub struct LightstreamerClient {
     subscription_receiver: Receiver<SubscriptionRequest>,
 }
 
+/// Retrieve a reference to a subscription with the given `id`
+fn get_subscription_by_id(
+    subscriptions: &Vec<Subscription>,
+    subscription_id: usize,
+) -> Option<&Subscription> {
+    subscriptions
+        .iter()
+        .find(|sub| sub.id == subscription_id)
+}
+
 impl Debug for LightstreamerClient {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("LightstreamerClient")
@@ -526,7 +536,7 @@ impl LightstreamerClient {
                                         // Extract the subscription from the first argument.
                                         //
                                         let subscription_index = arguments.get(1).unwrap_or(&"").parse::<usize>().unwrap_or(0);
-                                        let subscription = match self.get_subscriptions().get(subscription_index-1) {
+                                        let subscription = match get_subscription_by_id(self.get_subscriptions(), subscription_index) {
                                             Some(subscription) => subscription,
                                             None => {
                                                 self.make_log( Level::WARN, &format!("Subscription not found for index: {}", subscription_index) );
