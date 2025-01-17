@@ -124,6 +124,16 @@ pub struct LightstreamerClient {
     subscription_receiver: Receiver<SubscriptionRequest>,
 }
 
+/// Retrieve a reference to a subscription with the given `id`
+fn get_subscription_by_id(
+    subscriptions: &Vec<Subscription>,
+    subscription_id: usize,
+) -> Option<&Subscription> {
+    subscriptions
+        .iter()
+        .find(|sub| sub.id == subscription_id)
+}
+
 impl Debug for LightstreamerClient {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("LightstreamerClient")
@@ -526,7 +536,7 @@ impl LightstreamerClient {
                                         // Extract the subscription from the first argument.
                                         //
                                         let subscription_index = arguments.get(1).unwrap_or(&"").parse::<usize>().unwrap_or(0);
-                                        let subscription = match self.get_subscriptions().get(subscription_index-1) {
+                                        let subscription = match get_subscription_by_id(self.get_subscriptions(), subscription_index) {
                                             Some(subscription) => subscription,
                                             None => {
                                                 self.make_log( Level::WARN, &format!("Subscription not found for index: {}", subscription_index) );
@@ -664,6 +674,26 @@ impl LightstreamerClient {
                                                             field_index += 1;
                                                         }
                                                     }
+                                                }
+                                                value if value.starts_with('{') => {
+                                                    // in this case it is a json payload that we will let the consumer handle. In this case, it is important
+                                                    // to preserve casing for parsing.
+                                                    let original_json = parse_arguments(&submessage).get(3).unwrap_or(&"").split('|').collect::<Vec<&str>>();
+                                                    let mut payload = "";
+                                                    for json in original_json.iter()
+                                                    {
+                                                        if json.is_empty() || json.to_string() == "#"
+                                                        {
+                                                            continue;
+                                                        }
+                                                        
+                                                        payload = json;
+                                                    }
+                                                    
+                                                    if let Some(field_name) = subscription_fields.and_then(|fields| fields.get(field_index)) {
+                                                        field_map.insert(field_name.to_string(), Some(payload.to_string()));
+                                                    }
+                                                    field_index += 1;
                                                 }
                                                 _ => {
                                                     let decoded_value = serde_urlencoded::from_str(value).unwrap_or_else(|_| value.to_string());

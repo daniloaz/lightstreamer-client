@@ -1,6 +1,24 @@
 /// Clean the message from newlines and carriage returns and convert it to lowercase. Also remove all brackets.
 pub fn clean_message(text: &str) -> String {
-    text.replace("\n", "").replace("\r", "").to_lowercase()
+    let mut result = String::new();
+    let mut inside_braces = false;
+
+    for part in text.split_inclusive(&['{', '}']) {
+        if part.starts_with('{') && part.ends_with('}') {
+            // Part is fully inside braces
+            inside_braces = true;
+            result.push_str(part);
+        } else if inside_braces {
+            // We're processing a segment after an opening brace
+            inside_braces = false;
+            result.push_str(&part);
+        } else {
+            // Process the part outside braces
+            result.push_str(&part.replace('\n', "").replace('\r', "").to_lowercase());
+        }
+    }
+
+    result
 }
 
 pub fn parse_arguments(input: &str) -> Vec<&str> {
