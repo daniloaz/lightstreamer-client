@@ -1182,3 +1182,299 @@ impl Default for ConnectionOptions {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_new_connection_options() {
+        let options = ConnectionOptions::new();
+
+        // Verify default values
+        assert_eq!(options.get_content_length(), None);
+        assert_eq!(options.get_first_retry_max_delay(), 100);
+        assert_eq!(options.get_forced_transport(), None);
+        assert_eq!(options.get_http_extra_headers(), None);
+        assert!(!options.is_http_extra_headers_on_session_creation_only());
+        assert_eq!(options.get_idle_timeout(), 19000);
+        assert_eq!(options.get_keepalive_interval(), 0);
+        assert_eq!(options.get_polling_interval(), 0);
+        assert_eq!(options.get_reconnect_timeout(), 3000);
+        assert_eq!(options.get_retry_delay(), 4000);
+        assert_eq!(options.get_reverse_heartbeat_interval(), 0);
+        assert!(!options.is_server_instance_address_ignored());
+        assert_eq!(options.get_session_recovery_timeout(), 15000);
+        assert!(!options.is_slowing_enabled());
+        assert_eq!(options.get_stalled_timeout(), 2000);
+        assert!(options.get_send_sync());
+    }
+
+    #[test]
+    fn test_set_content_length() {
+        let mut options = ConnectionOptions::new();
+
+        // Test valid content length
+        assert!(options.set_content_length(10000).is_ok());
+        assert_eq!(options.get_content_length(), Some(10000));
+
+        // Test invalid (zero) content length
+        assert!(options.set_content_length(0).is_err());
+    }
+
+    #[test]
+    fn test_set_first_retry_max_delay() {
+        let mut options = ConnectionOptions::new();
+
+        // Test valid delay
+        assert!(options.set_first_retry_max_delay(500).is_ok());
+        assert_eq!(options.get_first_retry_max_delay(), 500);
+
+        // Test invalid (zero) delay
+        assert!(options.set_first_retry_max_delay(0).is_err());
+    }
+
+    #[test]
+    fn test_set_forced_transport() {
+        let mut options = ConnectionOptions::new();
+
+        // Test setting different transport types
+        options.set_forced_transport(Some(Transport::WsStreaming));
+        assert_eq!(options.get_forced_transport(), Some(&Transport::WsStreaming));
+
+        options.set_forced_transport(Some(Transport::HttpStreaming));
+        assert_eq!(options.get_forced_transport(), Some(&Transport::HttpStreaming));
+
+        options.set_forced_transport(Some(Transport::WsPolling));
+        assert_eq!(options.get_forced_transport(), Some(&Transport::WsPolling));
+
+        options.set_forced_transport(Some(Transport::HttpPolling));
+        assert_eq!(options.get_forced_transport(), Some(&Transport::HttpPolling));
+
+        options.set_forced_transport(Some(Transport::Ws));
+        assert_eq!(options.get_forced_transport(), Some(&Transport::Ws));
+
+        options.set_forced_transport(Some(Transport::Http));
+        assert_eq!(options.get_forced_transport(), Some(&Transport::Http));
+
+        // Test setting None
+        options.set_forced_transport(None);
+        assert_eq!(options.get_forced_transport(), None);
+    }
+
+    #[test]
+    fn test_set_http_extra_headers() {
+        let mut options = ConnectionOptions::new();
+
+        // Test setting headers
+        let mut headers = HashMap::new();
+        headers.insert("X-Custom-Header".to_string(), "Value".to_string());
+        headers.insert("X-Another-Header".to_string(), "AnotherValue".to_string());
+
+        options.set_http_extra_headers(Some(headers.clone()));
+        assert_eq!(options.get_http_extra_headers().unwrap(), &headers);
+
+        // Test setting None
+        options.set_http_extra_headers(None);
+        assert_eq!(options.get_http_extra_headers(), None);
+    }
+
+    #[test]
+    fn test_set_http_extra_headers_on_session_creation_only() {
+        let mut options = ConnectionOptions::new();
+
+        // Test setting to true
+        options.set_http_extra_headers_on_session_creation_only(true);
+        assert!(options.is_http_extra_headers_on_session_creation_only());
+
+        // Test setting to false
+        options.set_http_extra_headers_on_session_creation_only(false);
+        assert!(!options.is_http_extra_headers_on_session_creation_only());
+    }
+
+    #[test]
+    fn test_set_idle_timeout() {
+        let mut options = ConnectionOptions::new();
+
+        // Test valid timeout
+        assert!(options.set_idle_timeout(15000).is_ok());
+        assert_eq!(options.get_idle_timeout(), 15000);
+
+        // Test invalid (zero) timeout
+        assert!(options.set_idle_timeout(0).is_err());
+    }
+
+    #[test]
+    fn test_set_keepalive_interval() {
+        let mut options = ConnectionOptions::new();
+
+        // Test valid interval
+        assert!(options.set_keepalive_interval(5000).is_ok());
+        assert_eq!(options.get_keepalive_interval(), 5000);
+
+        // Test zero interval (special case - valid)
+        assert!(options.set_keepalive_interval(0).is_ok());
+        assert_eq!(options.get_keepalive_interval(), 0);
+    }
+
+    #[test]
+    fn test_set_polling_interval() {
+        let mut options = ConnectionOptions::new();
+
+        assert!(options.set_idle_timeout(2000).is_ok());
+        assert!(options.set_polling_interval(3000).is_ok());
+        assert_eq!(options.get_polling_interval(), 3000);
+        assert!(options.set_polling_interval(0).is_ok());
+        assert_eq!(options.get_polling_interval(), 0);
+        assert!(options.set_idle_timeout(19000).is_ok());
+        assert!(options.set_polling_interval(10000).is_err());
+    }
+
+    #[test]
+    fn test_set_reconnect_timeout() {
+        let mut options = ConnectionOptions::new();
+
+        // Test valid timeout
+        assert!(options.set_reconnect_timeout(5000).is_ok());
+        assert_eq!(options.get_reconnect_timeout(), 5000);
+
+        // Test invalid (zero) timeout
+        assert!(options.set_reconnect_timeout(0).is_err());
+    }
+
+    #[test]
+    fn test_set_requested_max_bandwidth() {
+        let mut options = ConnectionOptions::new();
+
+        // Test valid bandwidth
+        assert!(options.set_requested_max_bandwidth(Some(10.5)).is_ok());
+        assert_eq!(options.get_requested_max_bandwidth(), Some(10.5));
+
+        // Test invalid (zero) bandwidth
+        assert!(options.set_requested_max_bandwidth(Some(0.0)).is_err());
+
+        // Test setting None
+        assert!(options.set_requested_max_bandwidth(None).is_ok());
+        assert_eq!(options.get_requested_max_bandwidth(), None);
+    }
+
+    #[test]
+    fn test_set_retry_delay() {
+        let mut options = ConnectionOptions::new();
+
+        // Test valid delay
+        assert!(options.set_retry_delay(3000).is_ok());
+        assert_eq!(options.get_retry_delay(), 3000);
+
+        // Test invalid (zero) delay
+        assert!(options.set_retry_delay(0).is_err());
+    }
+
+    #[test]
+    fn test_set_reverse_heartbeat_interval() {
+        let mut options = ConnectionOptions::new();
+
+        // Test valid interval
+        assert!(options.set_reverse_heartbeat_interval(5000).is_ok());
+        assert_eq!(options.get_reverse_heartbeat_interval(), 5000);
+
+        // Test zero interval (special case - valid)
+        assert!(options.set_reverse_heartbeat_interval(0).is_ok());
+        assert_eq!(options.get_reverse_heartbeat_interval(), 0);
+    }
+
+    #[test]
+    fn test_set_server_instance_address_ignored() {
+        let mut options = ConnectionOptions::new();
+
+        // Test setting to true
+        options.set_server_instance_address_ignored(true);
+        assert!(options.is_server_instance_address_ignored());
+
+        // Test setting to false
+        options.set_server_instance_address_ignored(false);
+        assert!(!options.is_server_instance_address_ignored());
+    }
+
+    #[test]
+    fn test_set_session_recovery_timeout() {
+        let mut options = ConnectionOptions::new();
+
+        // Test valid timeout
+        assert!(options.set_session_recovery_timeout(10000).is_ok());
+        assert_eq!(options.get_session_recovery_timeout(), 10000);
+
+        // Test zero timeout (special case - valid)
+        assert!(options.set_session_recovery_timeout(0).is_ok());
+        assert_eq!(options.get_session_recovery_timeout(), 0);
+    }
+
+    #[test]
+    fn test_set_slowing_enabled() {
+        let mut options = ConnectionOptions::new();
+
+        // Test setting to true
+        options.set_slowing_enabled(true);
+        assert!(options.is_slowing_enabled());
+
+        // Test setting to false
+        options.set_slowing_enabled(false);
+        assert!(!options.is_slowing_enabled());
+    }
+
+    #[test]
+    fn test_set_stalled_timeout() {
+        let mut options = ConnectionOptions::new();
+
+        assert!(options.set_keepalive_interval(5000).is_ok());
+        assert!(options.set_stalled_timeout(1000).is_ok());
+        assert_eq!(options.get_stalled_timeout(), 1000);
+        assert!(options.set_stalled_timeout(0).is_err());
+        assert!(options.set_stalled_timeout(6000).is_err());
+        
+        options.set_reconnect_timeout(2000).unwrap();
+        assert!(options.set_stalled_timeout(1500).is_ok()); 
+        assert!(options.set_stalled_timeout(2500).is_err()); 
+    }
+
+    #[test]
+    fn test_set_polling() {
+        let mut options = ConnectionOptions::new();
+
+        // Test setting to true
+        options.set_polling(true);
+        assert!(options.is_polling());
+        assert_eq!(options.get_polling_interval(), 0); // Should be set to 0
+        assert_eq!(options.get_idle_timeout(), 19000); // Should be set to 19000
+
+        // Test setting to false
+        options.set_polling(false);
+        assert!(!options.is_polling());
+    }
+
+    #[test]
+    fn test_set_ttl_millis() {
+        let mut options = ConnectionOptions::new();
+
+        // Test setting value
+        options.set_ttl_millis(Some(5000));
+        assert_eq!(options.get_ttl_millis(), Some(5000));
+
+        // Test setting None
+        options.set_ttl_millis(None);
+        assert_eq!(options.get_ttl_millis(), None);
+    }
+
+    #[test]
+    fn test_set_supported_diffs() {
+        let mut options = ConnectionOptions::new();
+
+        // Test setting value
+        options.set_supported_diffs(Some("TLCP-diff,JSON-patch".to_string()));
+        assert_eq!(options.get_supported_diffs().unwrap(), "TLCP-diff,JSON-patch");
+
+        // Test setting None
+        options.set_supported_diffs(None);
+        assert_eq!(options.get_supported_diffs(), None);
+    }
+}

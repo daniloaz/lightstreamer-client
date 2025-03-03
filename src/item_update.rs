@@ -239,3 +239,109 @@ impl ItemUpdate {
         unimplemented!()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    fn create_test_item_update() -> ItemUpdate {
+        let mut fields = HashMap::new();
+        fields.insert("field1".to_string(), Some("value1".to_string()));
+        fields.insert("field2".to_string(), Some("value2".to_string()));
+        fields.insert("field3".to_string(), None);
+
+        let mut changed_fields = HashMap::new();
+        changed_fields.insert("field1".to_string(), "value1".to_string());
+        changed_fields.insert("field2".to_string(), "value2".to_string());
+
+        ItemUpdate {
+            item_name: Some("test_item".to_string()),
+            item_pos: 1,
+            fields,
+            changed_fields,
+            is_snapshot: false,
+        }
+    }
+
+    #[test]
+    fn test_get_item_name() {
+        let update = create_test_item_update();
+        assert_eq!(update.get_item_name(), Some("test_item"));
+
+        let mut update_no_name = create_test_item_update();
+        update_no_name.item_name = None;
+        assert_eq!(update_no_name.get_item_name(), None);
+    }
+
+    #[test]
+    fn test_get_item_pos() {
+        let update = create_test_item_update();
+        assert_eq!(update.get_item_pos(), 1);
+    }
+
+    #[test]
+    fn test_get_fields() {
+        let update = create_test_item_update();
+        let fields = update.get_fields();
+
+        assert_eq!(fields.len(), 3);
+        assert_eq!(fields.get("field1").unwrap(), &Some("value1".to_string()));
+        assert_eq!(fields.get("field2").unwrap(), &Some("value2".to_string()));
+        assert_eq!(fields.get("field3").unwrap(), &None);
+    }
+
+    #[test]
+    fn test_get_changed_fields() {
+        let update = create_test_item_update();
+        let changed_fields = update.get_changed_fields();
+
+        assert_eq!(changed_fields.len(), 2);
+        assert_eq!(changed_fields.get("field1").unwrap(), "value1");
+        assert_eq!(changed_fields.get("field2").unwrap(), "value2");
+        assert!(!changed_fields.contains_key("field3"));
+    }
+
+    #[test]
+    fn test_get_value() {
+        let update = create_test_item_update();
+
+        assert_eq!(update.get_value("field1"), Some("value1"));
+        assert_eq!(update.get_value("field2"), Some("value2"));
+        assert_eq!(update.get_value("field3"), None);
+        assert_eq!(update.get_value("non_existent"), None);
+    }
+
+    #[test]
+    fn test_is_snapshot() {
+        let update = create_test_item_update();
+        assert!(!update.is_snapshot());
+
+        let mut snapshot_update = create_test_item_update();
+        snapshot_update.is_snapshot = true;
+        assert!(snapshot_update.is_snapshot());
+    }
+
+    #[test]
+    fn test_is_value_changed() {
+        let update = create_test_item_update();
+
+        assert!(update.is_value_changed("field1"));
+        assert!(update.is_value_changed("field2"));
+        assert!(!update.is_value_changed("field3"));
+    }
+
+    #[test]
+    fn test_get_value_as_json_patch_if_available() {
+        let update = create_test_item_update();
+
+        assert_eq!(update.get_value_as_json_patch_if_available("field1"), None);
+    }
+
+    #[test]
+    #[should_panic(expected = "not implemented")]
+    fn test_get_field_position() {
+        let update = create_test_item_update();
+        update.get_field_position("field1");
+    }
+}
