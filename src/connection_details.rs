@@ -395,3 +395,175 @@ impl Default for ConnectionDetails {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::client_listener::ClientListener;
+    use std::fmt::Debug;
+
+    #[derive(Debug)]
+    struct MockClientListener {
+        property_changes: std::cell::RefCell<Vec<String>>,
+    }
+
+    impl MockClientListener {
+        fn new() -> Self {
+            MockClientListener {
+                property_changes: std::cell::RefCell::new(Vec::new()),
+            }
+        }
+
+        fn get_property_changes(&self) -> Vec<String> {
+            self.property_changes.borrow().clone()
+        }
+    }
+
+    impl ClientListener for MockClientListener {
+        fn on_property_change(&self, property: &str) {
+            self.property_changes.borrow_mut().push(property.to_string());
+        }
+    }
+
+    #[test]
+    fn test_new_connection_details() {
+        // Test with all values provided
+        let result = ConnectionDetails::new(
+            Some("http://test.lightstreamer.com"),
+            Some("DEMO"),
+            Some("user1"),
+            Some("pass1"),
+        );
+        assert!(result.is_ok());
+        let details = result.unwrap();
+        assert_eq!(details.get_server_address().unwrap(), "http://test.lightstreamer.com");
+        assert_eq!(details.get_adapter_set().unwrap(), "DEMO");
+        assert_eq!(details.get_user().unwrap(), "user1");
+        assert_eq!(details.get_password().unwrap(), "pass1");
+
+        // Test with only mandatory values
+        let result = ConnectionDetails::new(
+            Some("http://test.lightstreamer.com"),
+            None,
+            None,
+            None,
+        );
+        assert!(result.is_ok());
+        let details = result.unwrap();
+        assert_eq!(details.get_server_address().unwrap(), "http://test.lightstreamer.com");
+        assert_eq!(details.get_adapter_set().unwrap(), "DEFAULT"); // Default value
+        assert_eq!(details.get_user(), None);
+        assert_eq!(details.get_password(), None);
+
+        // Test with invalid server address
+        let result = ConnectionDetails::new(
+            Some("invalid-url"),
+            None,
+            None,
+            None,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_set_server_address() {
+        let mut details = ConnectionDetails::default();
+
+        // Test valid HTTP URL
+        assert!(details.set_server_address(Some("http://test.lightstreamer.com".to_string())).is_ok());
+        assert_eq!(details.get_server_address().unwrap(), "http://test.lightstreamer.com");
+
+        // Test valid HTTPS URL
+        assert!(details.set_server_address(Some("https://test.lightstreamer.com".to_string())).is_ok());
+        assert_eq!(details.get_server_address().unwrap(), "https://test.lightstreamer.com");
+
+        // Test with port
+        assert!(details.set_server_address(Some("https://test.lightstreamer.com:8080".to_string())).is_ok());
+        assert_eq!(details.get_server_address().unwrap(), "https://test.lightstreamer.com:8080");
+
+        // Test invalid URL (missing http:// or https://)
+        assert!(details.set_server_address(Some("test.lightstreamer.com".to_string())).is_err());
+
+        // Test None value
+        assert!(details.set_server_address(None).is_ok());
+        assert_eq!(details.get_server_address(), None);
+    }
+
+    #[test]
+    fn test_set_adapter_set() {
+        let mut details = ConnectionDetails::default();
+
+        // Test setting adapter set
+        details.set_adapter_set(Some("TEST_ADAPTER".to_string()));
+        assert_eq!(details.get_adapter_set().unwrap(), "TEST_ADAPTER");
+
+        // Test setting None (should default to "DEFAULT")
+        details.set_adapter_set(None);
+        assert_eq!(details.get_adapter_set().unwrap(), "DEFAULT");
+    }
+
+    #[test]
+    fn test_set_user_and_password() {
+        let mut details = ConnectionDetails::default();
+
+        // Test setting user
+        details.set_user(Some("test_user".to_string()));
+        assert_eq!(details.get_user().unwrap(), "test_user");
+
+        // Test setting None for user
+        details.set_user(None);
+        assert_eq!(details.get_user(), None);
+
+        // Test setting password
+        details.set_password(Some("test_password".to_string()));
+        assert_eq!(details.get_password().unwrap(), "test_password");
+
+        // Test setting None for password
+        details.set_password(None);
+        assert_eq!(details.get_password(), None);
+    }
+
+    #[test]
+    fn test_property_change_notifications() {
+        let mut details = ConnectionDetails::default();
+        let listener = Box::new(MockClientListener::new());
+        let listener_ref = &*listener as &dyn ClientListener as *const _ as *mut MockClientListener;
+
+        details.add_listener(listener);
+
+        // Change server address and verify notification
+        assert!(details.set_server_address(Some("http://test.lightstreamer.com".to_string())).is_ok());
+
+        // Change adapter set and verify notification
+        details.set_adapter_set(Some("TEST_ADAPTER".to_string()));
+
+        // Change user and verify notification
+        details.set_user(Some("test_user".to_string()));
+
+        // Change password and verify notification
+        details.set_password(Some("test_password".to_string()));
+
+        // Get property changes from the listener
+        let changes = unsafe { &*listener_ref }.get_property_changes();
+
+        // Verify all property changes were notified
+        assert!(changes.contains(&"serverAddress".to_string()));
+        assert!(changes.contains(&"adapterSet".to_string()));
+        assert!(changes.contains(&"user".to_string()));
+        assert!(changes.contains(&"password".to_string()));
+    }
+
+    #[test]
+    fn test_default_connection_details() {
+        let details = ConnectionDetails::default();
+
+        assert_eq!(details.get_server_address(), None);
+        assert_eq!(details.get_adapter_set(), None);
+        assert_eq!(details.get_user(), None);
+        assert_eq!(details.get_password(), None);
+        assert_eq!(details.get_client_ip(), None);
+        assert_eq!(details.get_server_instance_address(), None);
+        assert_eq!(details.get_server_socket_name(), None);
+        assert_eq!(details.get_session_id(), None);
+    }
+}

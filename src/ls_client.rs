@@ -842,7 +842,6 @@ impl LightstreamerClient {
                     }
                 },
                 Some(subscription_request) = self.subscription_receiver.recv() => {
-                    println!("Received subscription/unsubscription request.");
                     request_id += 1;
                     // Process subscription requests.
                     if subscription_request.subscription.is_some()
@@ -1326,7 +1325,6 @@ impl LightstreamerClient {
         subscription_sender: Sender<SubscriptionRequest>,
         subscription_id: usize,
     ) {
-        println!("Unsubscribing subscription with id: {}", subscription_id);
         subscription_sender
             .try_send(SubscriptionRequest {
                 subscription: None,
@@ -1360,7 +1358,7 @@ impl LightstreamerClient {
     pub fn make_log(&mut self, loglevel: Level, log: &str) {
         match self.logging {
             LogType::StdLogs => {
-                println!("{}", log);
+                info!("{}", log);
             }
             LogType::TracingLogs => match loglevel {
                 Level::INFO => {
@@ -1410,4 +1408,306 @@ pub enum Transport {
     HttpStreaming,
     WsPolling,
     HttpPolling,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::client_listener::ClientListener;
+    use crate::subscription::{Subscription, SubscriptionMode};
+    use crate::subscription_listener::SubscriptionListener;
+    use std::error::Error;
+    use std::fmt::Debug;
+    use std::sync::{Arc, Mutex};
+    use tokio::sync::Notify;
+
+    #[derive(Debug)]
+    struct MockClientListener {
+        property_changes: Arc<Mutex<Vec<String>>>,
+        status_changes: Arc<Mutex<Vec<String>>>,
+        server_errors: Arc<Mutex<Vec<(i32, String)>>>,
+    }
+
+    impl MockClientListener {
+        fn new() -> Self {
+            MockClientListener {
+                property_changes: Arc::new(Mutex::new(Vec::new())),
+                status_changes: Arc::new(Mutex::new(Vec::new())),
+                server_errors: Arc::new(Mutex::new(Vec::new())),
+            }
+        }
+
+        #[allow(dead_code)]
+        fn with_shared_data(
+            property_changes: Arc<Mutex<Vec<String>>>,
+            status_changes: Arc<Mutex<Vec<String>>>,
+            server_errors: Arc<Mutex<Vec<(i32, String)>>>
+        ) -> Self {
+            MockClientListener {
+                property_changes,
+                status_changes,
+                server_errors,
+            }
+        }
+
+
+    }
+
+    impl ClientListener for MockClientListener {
+        fn on_property_change(&self, property: &str) {
+            self.property_changes.lock().unwrap().push(property.to_string());
+        }
+
+        fn on_status_change(&self, status: &str) {
+            self.status_changes.lock().unwrap().push(status.to_string());
+        }
+
+        fn on_server_error(&self, code: i32, message: &str) {
+            self.server_errors.lock().unwrap().push((code, message.to_string()));
+        }
+    }
+
+    #[allow(dead_code)]
+    struct MockSubscriptionListener;
+
+    impl SubscriptionListener for MockSubscriptionListener {
+        fn on_subscription(&mut self) {}
+        fn on_unsubscription(&mut self) {}
+        fn on_item_update(&self, _update: &ItemUpdate) {}
+    }
+
+    impl Debug for MockSubscriptionListener {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "MockSubscriptionListener")
+        }
+    }
+
+    #[allow(dead_code)]
+    struct LightstreamerClientTestContext {
+        client: LightstreamerClient,
+        property_changes: Arc<Mutex<Vec<String>>>,
+        status_changes: Arc<Mutex<Vec<String>>>,
+        server_errors: Arc<Mutex<Vec<(i32, String)>>>,
+    }
+
+    impl LightstreamerClientTestContext {
+        #[allow(dead_code)]
+        fn new() -> Result<Self, Box<dyn Error>> {
+            let property_changes = Arc::new(Mutex::new(Vec::new()));
+            let status_changes = Arc::new(Mutex::new(Vec::new()));
+            let server_errors = Arc::new(Mutex::new(Vec::new()));
+            let listener = MockClientListener::with_shared_data(
+                Arc::clone(&property_changes),
+                Arc::clone(&status_changes),
+                Arc::clone(&server_errors)
+            );
+
+            let mut client = LightstreamerClient::new(
+                Some("http://test.lightstreamer.com"),
+                Some("DEMO"),
+                None,
+                None,
+            )?;
+            client.add_listener(Box::new(listener));
+
+            Ok(LightstreamerClientTestContext {
+                client,
+                property_changes,
+                status_changes,
+                server_errors,
+            })
+        }
+
+    }
+
+    #[test]
+    fn test_new_lightstreamer_client() {
+        let result = LightstreamerClient::new(
+            Some("http://test.lightstreamer.com"),
+            Some("DEMO"),
+            None,
+            None,
+        );
+        assert!(result.is_ok());
+        let client = result.unwrap();
+        assert_eq!(client.server_address, Some("http://test.lightstreamer.com".to_string()));
+        assert_eq!(client.adapter_set, Some("DEMO".to_string()));
+        let result = LightstreamerClient::new(
+            Some("http://test.lightstreamer.com"),
+            Some("DEMO"),
+            Some("user1"),
+            Some("pass1"),
+        );
+        assert!(result.is_ok());
+        let client = result.unwrap();
+        assert_eq!(client.connection_details.get_user(), Some(&"user1".to_string()));
+        assert_eq!(client.connection_details.get_password(), Some(&"pass1".to_string()));
+        let result = LightstreamerClient::new(
+            Some("invalid-url"),
+            Some("DEMO"),
+            None,
+            None,
+        );
+        assert!(result.is_err());
+        let result = LightstreamerClient::new(
+            None,
+            Some("DEMO"),
+            None,
+            None,
+        );
+        assert!(result.is_ok());
+        let client = result.unwrap();
+        assert_eq!(client.server_address, None);
+    }
+
+    #[test]
+    fn test_add_listener() {
+        let result = LightstreamerClient::new(
+            Some("http://test.lightstreamer.com"),
+            Some("DEMO"),
+            None,
+            None,
+        );
+        assert!(result.is_ok());
+        let mut client = result.unwrap();
+        assert_eq!(client.listeners.len(), 0);
+        let listener = Box::new(MockClientListener::new());
+        client.add_listener(listener);
+        assert_eq!(client.listeners.len(), 1);
+        let listener2 = Box::new(MockClientListener::new());
+        client.add_listener(listener2);
+        assert_eq!(client.listeners.len(), 2);
+    }
+
+    #[test]
+    fn test_get_listeners() {
+        let result = LightstreamerClient::new(
+            Some("http://test.lightstreamer.com"),
+            Some("DEMO"),
+            None,
+            None,
+        );
+        assert!(result.is_ok());
+        let mut client = result.unwrap();
+        assert_eq!(client.get_listeners().len(), 0);
+
+        let listener = Box::new(MockClientListener::new());
+        client.add_listener(listener);
+        assert_eq!(client.get_listeners().len(), 1);
+    }
+
+    #[test]
+    fn test_get_status() {
+        let result = LightstreamerClient::new(
+            Some("http://test.lightstreamer.com"),
+            Some("DEMO"),
+            None,
+            None,
+        );
+        assert!(result.is_ok());
+        let client = result.unwrap();
+        match client.get_status() {
+            ClientStatus::Disconnected(DisconnectionType::WillRetry) => {},
+            _ => panic!("Expected initial status to be DISCONNECTED:WILL-RETRY"),
+        }
+    }
+
+    #[test]
+    fn test_get_subscriptions() {
+        let result = LightstreamerClient::new(
+            Some("http://test.lightstreamer.com"),
+            Some("DEMO"),
+            None,
+            None,
+        );
+        assert!(result.is_ok());
+        let client = result.unwrap();
+        assert_eq!(client.get_subscriptions().len(), 0);
+    }
+    
+
+    #[tokio::test]
+    async fn test_connect_with_no_server_address() {
+        let result = LightstreamerClient::new(
+            None,
+            Some("DEMO"),
+            None,
+            None,
+        );
+        assert!(result.is_ok());
+        let mut client = result.unwrap();
+        let shutdown_signal = Arc::new(Notify::new());
+        let result = client.connect(shutdown_signal).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_forced_transport_validation() {
+        let result = LightstreamerClient::new(
+            Some("http://test.lightstreamer.com"),
+            Some("DEMO"),
+            None,
+            None,
+        );
+        assert!(result.is_ok());
+        let mut client = result.unwrap();
+
+        client.connection_options.set_forced_transport(None);
+        let shutdown_signal = Arc::new(Notify::new());
+        let result = client.connect(shutdown_signal).await;
+        assert!(result.is_err());
+        client.connection_options.set_forced_transport(Some(Transport::WsStreaming));
+    }
+
+    #[test]
+    fn test_subscription_params_generation() {
+        let subscription = Subscription::new(
+            SubscriptionMode::Merge,
+            Some(vec!["item1".to_string(), "item2".to_string()]),
+            Some(vec!["field1".to_string(), "field2".to_string()]),
+        ).unwrap();
+
+        let params = LightstreamerClient::get_subscription_params(&subscription, 1);
+        assert!(params.is_ok());
+        let params_str = params.unwrap();
+        
+        assert!(params_str.contains("LS_reqId=1"));
+        assert!(params_str.contains("LS_op=add"));
+        assert!(params_str.contains("LS_subId="));
+        assert!(params_str.contains("LS_mode=MERGE"));
+        assert!(params_str.contains("LS_group="));
+        assert!(params_str.contains("LS_schema="));
+    }
+
+    #[test]
+    fn test_unsubscription_params_generation() {
+        let params = LightstreamerClient::get_unsubscription_params(42, 123);
+        assert!(params.is_ok());
+        let params_str = params.unwrap();
+
+        assert!(params_str.contains("LS_reqId=123"));
+        assert!(params_str.contains("LS_op=delete"));
+        assert!(params_str.contains("LS_subId=42"));
+    }
+
+    #[test]
+    fn test_logging_functions() {
+        let result = LightstreamerClient::new(
+            Some("http://test.lightstreamer.com"),
+            Some("DEMO"),
+            None,
+            None,
+        );
+        assert!(result.is_ok());
+        let mut client = result.unwrap();
+
+        client.set_logging_type(LogType::StdLogs);
+
+        client.make_log(Level::INFO, "Test log message");
+        client.make_log(Level::DEBUG, "Test debug message");
+        client.set_logging_type(LogType::TracingLogs);
+        client.make_log(Level::INFO, "Test tracing log message");
+        client.make_log(Level::DEBUG, "Test tracing debug message");
+    }
+
 }

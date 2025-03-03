@@ -2,7 +2,7 @@ use crate::subscription_listener::SubscriptionListener;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::{self, Debug, Formatter};
-use tokio::sync::watch::{self, Sender, Receiver};
+use tokio::sync::watch::{self, Receiver, Sender};
 
 /// Enum representing the snapshot delivery preferences to be requested to Lightstreamer Server for the items in the Subscription.
 #[derive(Debug, Default)]
@@ -116,9 +116,9 @@ impl Subscription {
         if items.is_none() || fields.is_none() {
             return Err("Items and fields must be provided".to_string().into());
         }
-        
+
         let (id_sender, id_receiver) = watch::channel(0);
-        
+
         Ok(Subscription {
             mode,
             items,
@@ -140,7 +140,7 @@ impl Subscription {
             is_subscribed: false,
             id: 0,
             id_sender,
-            id_receiver
+            id_receiver,
         })
     }
 
@@ -931,5 +931,374 @@ impl Debug for Subscription {
             .field("is_active", &self.is_active)
             .field("is_subscribed", &self.is_subscribed)
             .finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::item_update::ItemUpdate;
+    use crate::subscription_listener::SubscriptionListener;
+    use std::sync::{Arc, Mutex};
+
+    struct MockSubscriptionListener {
+        subscription_called: Arc<Mutex<bool>>,
+        unsubscription_called: Arc<Mutex<bool>>,
+        item_update_called: Arc<Mutex<bool>>,
+    }
+
+    impl MockSubscriptionListener {
+        fn new() -> Self {
+            MockSubscriptionListener {
+                subscription_called: Arc::new(Mutex::new(false)),
+                unsubscription_called: Arc::new(Mutex::new(false)),
+                item_update_called: Arc::new(Mutex::new(false)),
+            }
+        }
+    }
+
+    impl SubscriptionListener for MockSubscriptionListener {
+        fn on_subscription(&mut self) {
+            *self.subscription_called.lock().unwrap() = true;
+        }
+
+        fn on_unsubscription(&mut self) {
+            *self.unsubscription_called.lock().unwrap() = true;
+        }
+
+        fn on_item_update(&self, _update: &ItemUpdate) {
+            *self.item_update_called.lock().unwrap() = true;
+        }
+    }
+
+    #[test]
+    fn test_new_subscription() {
+        let subscription = Subscription::new(
+            SubscriptionMode::Merge,
+            Some(vec!["item1".to_string(), "item2".to_string()]),
+            Some(vec!["field1".to_string(), "field2".to_string()]),
+        );
+
+        assert!(subscription.is_ok());
+        let subscription = subscription.unwrap();
+
+        assert_eq!(*subscription.get_mode(), SubscriptionMode::Merge);
+        assert_eq!(
+            subscription.get_items().unwrap(),
+            &vec!["item1".to_string(), "item2".to_string()]
+        );
+        assert_eq!(
+            subscription.get_fields().unwrap(),
+            &vec!["field1".to_string(), "field2".to_string()]
+        );
+
+        let subscription = Subscription::new(
+            SubscriptionMode::Merge,
+            None,
+            Some(vec!["field1".to_string()]),
+        );
+        assert!(subscription.is_err());
+
+        let subscription = Subscription::new(
+            SubscriptionMode::Merge,
+            Some(vec!["item1".to_string()]),
+            None,
+        );
+        assert!(subscription.is_err());
+    }
+
+    #[test]
+    fn test_add_and_remove_listener() {
+        let mut subscription = Subscription::new(
+            SubscriptionMode::Merge,
+            Some(vec!["item1".to_string()]),
+            Some(vec!["field1".to_string()]),
+        )
+        .unwrap();
+        assert_eq!(subscription.get_listeners().len(), 0);
+
+        let listener = Box::new(MockSubscriptionListener::new());
+        subscription.add_listener(listener);
+        assert_eq!(subscription.get_listeners().len(), 1);
+
+        let listener2 = MockSubscriptionListener::new();
+        subscription.remove_listener(&listener2);
+        assert_eq!(subscription.get_listeners().len(), 1);
+
+        subscription.add_listener(Box::new(listener2));
+        assert_eq!(subscription.get_listeners().len(), 2);
+    }
+
+    #[test]
+    fn test_set_items() {
+        let mut subscription = Subscription::new(
+            SubscriptionMode::Merge,
+            Some(vec!["item1".to_string()]),
+            Some(vec!["field1".to_string()]),
+        )
+        .unwrap();
+
+        let result = subscription.set_items(vec!["new_item1".to_string(), "new_item2".to_string()]);
+        assert!(result.is_ok());
+
+        assert_eq!(
+            subscription.get_items().unwrap(),
+            &vec!["new_item1".to_string(), "new_item2".to_string()]
+        );
+
+        subscription.is_active = true;
+
+        let result = subscription.set_items(vec!["another_item".to_string()]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_set_fields() {
+        let mut subscription = Subscription::new(
+            SubscriptionMode::Merge,
+            Some(vec!["item1".to_string()]),
+            Some(vec!["field1".to_string()]),
+        )
+        .unwrap();
+
+        let result =
+            subscription.set_fields(vec!["new_field1".to_string(), "new_field2".to_string()]);
+        assert!(result.is_ok());
+
+        assert_eq!(
+            subscription.get_fields().unwrap(),
+            &vec!["new_field1".to_string(), "new_field2".to_string()]
+        );
+
+        subscription.is_active = true;
+
+        let result = subscription.set_fields(vec!["another_field".to_string()]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_set_item_group() {
+        let mut subscription = Subscription::new(
+            SubscriptionMode::Merge,
+            Some(vec!["item1".to_string()]),
+            Some(vec!["field1".to_string()]),
+        )
+        .unwrap();
+
+        let result = subscription.set_item_group("group1".to_string());
+        assert!(result.is_ok());
+
+        assert_eq!(subscription.get_item_group().unwrap(), "group1");
+
+        subscription.is_active = true;
+
+        let result = subscription.set_item_group("another_group".to_string());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_set_field_schema() {
+        let mut subscription = Subscription::new(
+            SubscriptionMode::Merge,
+            Some(vec!["item1".to_string()]),
+            Some(vec!["field1".to_string()]),
+        )
+        .unwrap();
+
+        let result = subscription.set_field_schema("schema1".to_string());
+        assert!(result.is_ok());
+
+        assert_eq!(subscription.get_field_schema().unwrap(), "schema1");
+
+        subscription.is_active = true;
+
+        let result = subscription.set_field_schema("another_schema".to_string());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_set_data_adapter() {
+        let mut subscription = Subscription::new(
+            SubscriptionMode::Merge,
+            Some(vec!["item1".to_string()]),
+            Some(vec!["field1".to_string()]),
+        )
+        .unwrap();
+
+        let result = subscription.set_data_adapter(Some("adapter1".to_string()));
+        assert!(result.is_ok());
+        assert_eq!(subscription.get_data_adapter().unwrap(), "adapter1");
+
+        subscription.is_active = true;
+
+        let result = subscription.set_data_adapter(Some("another_adapter".to_string()));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_set_requested_snapshot() {
+        let mut subscription = Subscription::new(
+            SubscriptionMode::Merge,
+            Some(vec!["item1".to_string()]),
+            Some(vec!["field1".to_string()]),
+        )
+        .unwrap();
+
+        let result = subscription.set_requested_snapshot(Some(Snapshot::Yes));
+        assert!(result.is_ok());
+
+        match subscription.get_requested_snapshot().unwrap() {
+            Snapshot::Yes => {} // OK
+            _ => panic!("Expected Snapshot::Yes"),
+        }
+
+        subscription.is_active = true;
+
+        let result = subscription.set_requested_snapshot(Some(Snapshot::No));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_set_requested_buffer_size() {
+        let mut subscription = Subscription::new(
+            SubscriptionMode::Merge,
+            Some(vec!["item1".to_string()]),
+            Some(vec!["field1".to_string()]),
+        )
+        .unwrap();
+
+        let result = subscription.set_requested_buffer_size(Some(10));
+        assert!(result.is_ok());
+
+        assert_eq!(subscription.get_requested_buffer_size().unwrap(), &10);
+
+        subscription.is_active = true;
+
+        let result = subscription.set_requested_buffer_size(Some(20));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_set_requested_max_frequency() {
+        let mut subscription = Subscription::new(
+            SubscriptionMode::Merge,
+            Some(vec!["item1".to_string()]),
+            Some(vec!["field1".to_string()]),
+        )
+        .unwrap();
+
+        let result = subscription.set_requested_max_frequency(Some(10.5));
+        assert!(result.is_ok());
+
+        assert_eq!(subscription.get_requested_max_frequency().unwrap(), &10.5);
+
+        subscription.is_active = true;
+
+        let result = subscription.set_requested_max_frequency(Some(20.5));
+        assert!(result.is_ok());
+
+        subscription.requested_max_frequency = None;
+        let result = subscription.set_requested_max_frequency(Some(30.5));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_set_selector() {
+        let mut subscription = Subscription::new(
+            SubscriptionMode::Merge,
+            Some(vec!["item1".to_string()]),
+            Some(vec!["field1".to_string()]),
+        )
+        .unwrap();
+
+        let result = subscription.set_selector(Some("selector1".to_string()));
+        assert!(result.is_ok());
+
+        assert_eq!(subscription.get_selector().unwrap(), "selector1");
+
+        subscription.is_active = true;
+
+        let result = subscription.set_selector(Some("another_selector".to_string()));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_command_second_level_methods() {
+        let mut subscription = Subscription::new(
+            SubscriptionMode::Command,
+            Some(vec!["item1".to_string()]),
+            Some(vec!["field1".to_string()]),
+        )
+        .unwrap();
+
+        let result =
+            subscription.set_command_second_level_data_adapter(Some("adapter1".to_string()));
+        assert!(result.is_ok());
+        assert_eq!(
+            subscription
+                .get_command_second_level_data_adapter()
+                .unwrap(),
+            "adapter1"
+        );
+
+        subscription.is_active = true;
+
+        let result =
+            subscription.set_command_second_level_data_adapter(Some("adapter2".to_string()));
+        assert!(result.is_err());
+
+        subscription.is_active = false;
+
+        let result = subscription.set_command_second_level_fields(Some(vec![
+            "field1".to_string(),
+            "field2".to_string(),
+        ]));
+        assert!(result.is_ok());
+        assert_eq!(
+            subscription.get_command_second_level_fields().unwrap(),
+            &vec!["field1".to_string(), "field2".to_string()]
+        );
+
+        let result =
+            subscription.set_command_second_level_field_schema(Some("schema1".to_string()));
+        assert!(result.is_ok());
+        assert_eq!(
+            subscription
+                .get_command_second_level_field_schema()
+                .unwrap(),
+            "schema1"
+        );
+
+        let mut non_command_subscription = Subscription::new(
+            SubscriptionMode::Merge,
+            Some(vec!["item1".to_string()]),
+            Some(vec!["field1".to_string()]),
+        )
+        .unwrap();
+
+        let result = non_command_subscription
+            .set_command_second_level_data_adapter(Some("adapter1".to_string()));
+        assert!(result.is_err());
+
+        let result = non_command_subscription
+            .set_command_second_level_fields(Some(vec!["field1".to_string()]));
+        assert!(result.is_err());
+
+        let result = non_command_subscription
+            .set_command_second_level_field_schema(Some("schema1".to_string()));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_is_active_and_is_subscribed() {
+        let subscription = Subscription::new(
+            SubscriptionMode::Merge,
+            Some(vec!["item1".to_string()]),
+            Some(vec!["field1".to_string()]),
+        )
+        .unwrap();
+
+        assert!(!subscription.is_active());
+        assert!(!subscription.is_subscribed());
     }
 }

@@ -35,7 +35,7 @@ async fn setup_signal_hook(shutdown_signal: Arc<Notify>) {
     tokio::spawn(async move {
         for signal in signals_iterator.forever() {
             println!("Received signal: {}", signal_name(signal).unwrap());
-            let _ = shutdown_signal.notify_one();
+            shutdown_signal.notify_one();
             break;
         }
     });

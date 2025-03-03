@@ -186,3 +186,255 @@ pub trait ClientListener: Debug + Send {
         unimplemented!("Implement on_status_change method for ClientListener");
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::{Arc, Mutex};
+
+    // A mock implementation of ClientListener for testing
+    #[derive(Debug)]
+    struct TestClientListener {
+        on_property_change_called: Arc<Mutex<bool>>,
+        property_changes: Arc<Mutex<Vec<String>>>,
+
+        on_server_error_called: Arc<Mutex<bool>>,
+        error_codes: Arc<Mutex<Vec<i32>>>,
+        error_messages: Arc<Mutex<Vec<String>>>,
+
+        on_status_change_called: Arc<Mutex<bool>>,
+        status_changes: Arc<Mutex<Vec<String>>>,
+
+        on_listen_start_called: Arc<Mutex<bool>>,
+        on_listen_end_called: Arc<Mutex<bool>>,
+    }
+
+    impl TestClientListener {
+        fn new() -> Self {
+            TestClientListener {
+                on_property_change_called: Arc::new(Mutex::new(false)),
+                property_changes: Arc::new(Mutex::new(Vec::new())),
+
+                on_server_error_called: Arc::new(Mutex::new(false)),
+                error_codes: Arc::new(Mutex::new(Vec::new())),
+                error_messages: Arc::new(Mutex::new(Vec::new())),
+
+                on_status_change_called: Arc::new(Mutex::new(false)),
+                status_changes: Arc::new(Mutex::new(Vec::new())),
+
+                on_listen_start_called: Arc::new(Mutex::new(false)),
+                on_listen_end_called: Arc::new(Mutex::new(false)),
+            }
+        }
+
+        // Helper methods to check if methods were called
+        fn was_on_property_change_called(&self) -> bool {
+            *self.on_property_change_called.lock().unwrap()
+        }
+
+        fn get_property_changes(&self) -> Vec<String> {
+            self.property_changes.lock().unwrap().clone()
+        }
+
+        fn was_on_server_error_called(&self) -> bool {
+            *self.on_server_error_called.lock().unwrap()
+        }
+
+        fn get_error_codes(&self) -> Vec<i32> {
+            self.error_codes.lock().unwrap().clone()
+        }
+
+        fn get_error_messages(&self) -> Vec<String> {
+            self.error_messages.lock().unwrap().clone()
+        }
+
+        fn was_on_status_change_called(&self) -> bool {
+            *self.on_status_change_called.lock().unwrap()
+        }
+
+        fn get_status_changes(&self) -> Vec<String> {
+            self.status_changes.lock().unwrap().clone()
+        }
+
+        fn was_on_listen_start_called(&self) -> bool {
+            *self.on_listen_start_called.lock().unwrap()
+        }
+
+        fn was_on_listen_end_called(&self) -> bool {
+            *self.on_listen_end_called.lock().unwrap()
+        }
+    }
+
+    // Implement ClientListener for our test struct
+    impl ClientListener for TestClientListener {
+        fn on_property_change(&self, property: &str) {
+            *self.on_property_change_called.lock().unwrap() = true;
+            self.property_changes.lock().unwrap().push(property.to_string());
+        }
+
+        fn on_server_error(&self, code: i32, message: &str) {
+            *self.on_server_error_called.lock().unwrap() = true;
+            self.error_codes.lock().unwrap().push(code);
+            self.error_messages.lock().unwrap().push(message.to_string());
+        }
+
+        fn on_status_change(&self, status: &str) {
+            *self.on_status_change_called.lock().unwrap() = true;
+            self.status_changes.lock().unwrap().push(status.to_string());
+        }
+
+        fn on_listen_start(&self) {
+            *self.on_listen_start_called.lock().unwrap() = true;
+        }
+
+        fn on_listen_end(&self) {
+            *self.on_listen_end_called.lock().unwrap() = true;
+        }
+    }
+
+    // Minimal implementation that uses the default implementations
+    #[derive(Debug)]
+    struct MinimalClientListener;
+
+    impl ClientListener for MinimalClientListener {
+        fn on_property_change(&self, _property: &str) {
+            unimplemented!("Implement on_property_change method for ClientListener");
+        }
+
+        fn on_server_error(&self, _code: i32, _message: &str) {
+            unimplemented!("Implement on_server_error method for ClientListener");
+        }
+
+        fn on_status_change(&self, _status: &str) {
+            unimplemented!("Implement on_status_change method for ClientListener");
+        }
+    }
+
+    #[test]
+    fn test_on_property_change() {
+        let listener = TestClientListener::new();
+
+        // Call the on_property_change method with a test property
+        listener.on_property_change("serverAddress");
+
+        // Verify that the method was called and the property was stored
+        assert!(listener.was_on_property_change_called());
+        assert_eq!(listener.get_property_changes(), vec!["serverAddress"]);
+
+        // Call with additional properties
+        listener.on_property_change("adapterSet");
+        listener.on_property_change("user");
+
+        // Verify that all properties were stored
+        assert_eq!(
+            listener.get_property_changes(),
+            vec!["serverAddress", "adapterSet", "user"]
+        );
+    }
+
+    #[test]
+    fn test_on_server_error() {
+        let listener = TestClientListener::new();
+
+        // Call the on_server_error method with test values
+        listener.on_server_error(1, "Authentication error");
+
+        // Verify that the method was called and the values were stored
+        assert!(listener.was_on_server_error_called());
+        assert_eq!(listener.get_error_codes(), vec![1]);
+        assert_eq!(listener.get_error_messages(), vec!["Authentication error"]);
+
+        // Call with additional errors
+        listener.on_server_error(2, "Adapter set not available");
+        listener.on_server_error(-1, "Custom error");
+
+        // Verify that all errors were stored
+        assert_eq!(listener.get_error_codes(), vec![1, 2, -1]);
+        assert_eq!(
+            listener.get_error_messages(),
+            vec!["Authentication error", "Adapter set not available", "Custom error"]
+        );
+    }
+
+    #[test]
+    fn test_on_status_change() {
+        let listener = TestClientListener::new();
+
+        // Call the on_status_change method with a test status
+        listener.on_status_change("CONNECTING");
+
+        // Verify that the method was called and the status was stored
+        assert!(listener.was_on_status_change_called());
+        assert_eq!(listener.get_status_changes(), vec!["CONNECTING"]);
+
+        // Call with additional statuses
+        listener.on_status_change("CONNECTED:WS-STREAMING");
+        listener.on_status_change("DISCONNECTED");
+
+        // Verify that all statuses were stored
+        assert_eq!(
+            listener.get_status_changes(),
+            vec!["CONNECTING", "CONNECTED:WS-STREAMING", "DISCONNECTED"]
+        );
+    }
+
+    #[test]
+    fn test_on_listen_start_and_end() {
+        let listener = TestClientListener::new();
+
+        // Initially, these should be false
+        assert!(!listener.was_on_listen_start_called());
+        assert!(!listener.was_on_listen_end_called());
+
+        // Call the on_listen_start method
+        listener.on_listen_start();
+
+        // Verify that on_listen_start was called but not on_listen_end
+        assert!(listener.was_on_listen_start_called());
+        assert!(!listener.was_on_listen_end_called());
+
+        // Call the on_listen_end method
+        listener.on_listen_end();
+
+        // Verify that both methods were called
+        assert!(listener.was_on_listen_start_called());
+        assert!(listener.was_on_listen_end_called());
+    }
+
+    #[test]
+    #[should_panic(expected = "Implement on_property_change method for ClientListener")]
+    fn test_default_on_property_change_implementation() {
+        let listener = MinimalClientListener;
+        listener.on_property_change("test");
+    }
+
+    #[test]
+    #[should_panic(expected = "Implement on_server_error method for ClientListener")]
+    fn test_default_on_server_error_implementation() {
+        let listener = MinimalClientListener;
+        listener.on_server_error(1, "test error");
+    }
+
+    #[test]
+    #[should_panic(expected = "Implement on_status_change method for ClientListener")]
+    fn test_default_on_status_change_implementation() {
+        let listener = MinimalClientListener;
+        listener.on_status_change("CONNECTING");
+    }
+
+    #[test]
+    fn test_default_on_listen_start_implementation() {
+        let listener = MinimalClientListener;
+
+        // This shouldn't panic as it uses a default implementation
+        listener.on_listen_start();
+    }
+
+    #[test]
+    fn test_default_on_listen_end_implementation() {
+        let listener = MinimalClientListener;
+
+        // This shouldn't panic as it uses a default implementation
+        listener.on_listen_end();
+    }
+}
