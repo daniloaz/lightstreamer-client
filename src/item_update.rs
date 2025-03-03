@@ -319,7 +319,7 @@ mod tests {
 
         let mut snapshot_update = create_test_item_update();
         snapshot_update.is_snapshot = true;
-        assert!(!snapshot_update.is_snapshot());
+        assert!(snapshot_update.is_snapshot());
     }
 
     #[test]
