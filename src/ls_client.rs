@@ -53,6 +53,7 @@ pub enum LogType {
     StdLogs,
 }
 
+#[derive(Debug)]
 pub struct SubscriptionRequest {
     subscription: Option<Subscription>,
     subscription_id: Option<usize>,
@@ -491,7 +492,7 @@ impl LightstreamerClient {
                                                 write_stream
                                                     .send(Message::Text(format!("control\r\n{}", encoded_params).into()))
                                                     .await?;
-                                                info!("Sent subscription request: '{}'", encoded_params);
+                                                self.make_log( Level::INFO, &format!("Sent subscription request: '{}'", encoded_params));
                                             }
                                         } else {
                                             return Err(Box::new(std::io::Error::new(
@@ -841,7 +842,7 @@ impl LightstreamerClient {
                     }
                 },
                 Some(subscription_request) = self.subscription_receiver.recv() => {
-                    println!("Received subscription/unsubscription request.");
+                    self.make_log( Level::INFO, &format!("Received subscription/unsubscription request{:?}", subscription_request));
                     request_id += 1;
                     // Process subscription requests.
                     if subscription_request.subscription.is_some()
@@ -1318,14 +1319,13 @@ impl LightstreamerClient {
     ///
     /// # Parameters
     ///
-    /// * `subsrciption_sender`: A `Sender` object that sends a `SubscriptionRequest` to the `LightstreamerClient`
+    /// * `subscription_sender`: A `Sender` object that sends a `SubscriptionRequest` to the `LightstreamerClient`
     /// * `subscription_id`: The id of the subscription to be unsubscribed from.
     ///   instance.
     pub fn unsubscribe(
         subscription_sender: Sender<SubscriptionRequest>,
         subscription_id: usize,
     ) {
-        println!("Unsubscribing subscription with id: {}", subscription_id);
         subscription_sender
             .try_send(SubscriptionRequest {
                 subscription: None,
