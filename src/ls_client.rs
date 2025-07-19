@@ -436,7 +436,6 @@ impl LightstreamerClient {
         //
         let mut is_connected = false;
         let mut request_id: usize = 0;
-        let mut _session_id: Option<String> = None;
         let mut subscription_id: usize = 0;
         let mut subscription_item_updates: HashMap<usize, HashMap<usize, ItemUpdate>> =
             HashMap::new();
