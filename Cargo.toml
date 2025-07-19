@@ -15,7 +15,7 @@ colored = "3"
 cookie = { version = "0", features = ["percent-encode"]}
 futures = "0"
 futures-util = "0"
-json-patch = "1"
+json-patch = "4"
 reqwest = { version = "0", features = ["json", "stream"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1" }
