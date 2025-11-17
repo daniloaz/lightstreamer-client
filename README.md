@@ -1,4 +1,35 @@
+<div align="center">
+
+<img src="assets/lightstreamer-logo.svg" alt="Lightstreamer" width="400"/>
+
 # Lightstreamer Rust Client SDK
+
+**A Rust implementation of the Lightstreamer TLCP (Text-based Live Connections Protocol)**
+
+<!-- Project Info -->
+[![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](https://github.com/daniloaz/lightstreamer-client/blob/main/LICENSE)
+[![Crates.io](https://img.shields.io/crates/v/lightstreamer-client.svg)](https://crates.io/crates/lightstreamer-client)
+[![Downloads](https://img.shields.io/crates/d/lightstreamer-client.svg)](https://crates.io/crates/lightstreamer-client)
+[![Documentation](https://docs.rs/lightstreamer-client/badge.svg)](https://docs.rs/lightstreamer-client)
+[![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg?logo=rust)](https://www.rust-lang.org)
+
+<!-- Quality & Metrics -->
+[![Dependencies](https://deps.rs/repo/github/daniloaz/lightstreamer-client/status.svg)](https://deps.rs/repo/github/daniloaz/lightstreamer-client)
+[![Code Size](https://img.shields.io/github/languages/code-size/daniloaz/lightstreamer-client.svg?color=orange)](https://github.com/daniloaz/lightstreamer-client)
+[![Contributors](https://img.shields.io/github/contributors/daniloaz/lightstreamer-client.svg)](https://github.com/daniloaz/lightstreamer-client/graphs/contributors)
+[![Last Commit](https://img.shields.io/github/last-commit/daniloaz/lightstreamer-client.svg)](https://github.com/daniloaz/lightstreamer-client/commits/main)
+
+<!-- Community & Status -->
+[![GitHub Stars](https://img.shields.io/github/stars/daniloaz/lightstreamer-client.svg?style=social)](https://github.com/daniloaz/lightstreamer-client/stargazers)
+[![GitHub Issues](https://img.shields.io/github/issues/daniloaz/lightstreamer-client.svg)](https://github.com/daniloaz/lightstreamer-client/issues)
+[![Made with Rust](https://img.shields.io/badge/Made%20with-Rust-orange.svg?logo=rust&logoColor=white)](https://www.rust-lang.org/)
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/daniloaz/lightstreamer-client/graphs/commit-activity)
+
+[Documentation](https://docs.rs/lightstreamer-client) | [Crates.io](https://crates.io/crates/lightstreamer-client) | [Repository](https://github.com/daniloaz/lightstreamer-client)
+
+</div>
+
+---
 
 This project is a partial implementation of the Lightstreamer TLCP (Text-based Live Connections Protocol) in Rust. It provides a client SDK to interact with Lightstreamer servers, focused on supporting the specific needs of the [ig_trading_api](https://github.com/daniloaz/ig_trading_api) project.
 
