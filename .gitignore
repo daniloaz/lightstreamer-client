@@ -15,3 +15,9 @@ Cargo.lock
 
 # Visual Studio Code
 .vscode
+
+# Improvement plans
+IMPROVEMENT_PLAN_*
+
+# Lightstreamer Official Documentation
+docs/lightstreamer-official/
